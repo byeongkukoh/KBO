@@ -47,8 +47,10 @@
 - 데이터 엔티티와 통계 항목은 `docs/data/` 에 기록한다.
 - 스크래핑, 배치, 실패 처리, 운영 흐름은 `docs/operations/` 에 기록한다.
 - 시스템 경계와 프로젝트 구조는 `docs/architecture/` 에 기록한다.
+- 세션 handoff 와 현재 작업 상태는 `docs/continuation/` 에 기록한다.
 - 새로운 문서는 한 주제만 다루고, 파일명은 소문자 kebab-case를 사용한다.
 - 문서에는 확정 사항과 향후 검토 사항을 구분해서 적는다.
+- 다른 환경에서 이어서 작업할 가능성이 있으면 `docs/continuation/current-status.md` 를 함께 갱신한다.
 
 ## 4. Git Conventions
 

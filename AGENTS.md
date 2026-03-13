@@ -50,6 +50,7 @@ AI는 항상 다음 우선순위를 따른다.
 ### Before Changing Code
 
 - 먼저 관련 문서를 읽는다.
+- 새 세션이거나 다른 환경에서 이어받은 작업이면 `docs/continuation/current-status.md` 를 먼저 읽는다.
 - 해당 작업이 MVP 범위인지 확인한다.
 - 데이터 구조를 바꾸는 작업이면 `docs/data/` 와 `docs/operations/` 부터 확인한다.
 - 화면 구조를 바꾸는 작업이면 `docs/product/` 를 먼저 확인한다.
@@ -103,6 +104,7 @@ AI는 항상 다음 우선순위를 따른다.
 - AI 역할 정의는 가능하지만, 강한 캐릭터성보다 저장소 맥락과 우선순위를 제공하는 데 집중한다.
 - 구현보다 앞서 문서가 필요한 작업이면 문서부터 갱신한다.
 - 스크래핑 관련 변경은 원천 페이지, 식별자, 중복 방지, 실패 처리까지 함께 검토한다.
+- 의미 있는 작업이 끝나면 `docs/continuation/current-status.md` 를 함께 갱신해 다음 세션이 바로 이어질 수 있게 한다.
 
 ## Common Pitfalls
 
@@ -115,6 +117,7 @@ AI는 항상 다음 우선순위를 따른다.
 ## Next Useful Reads
 
 - `RULES.md`
+- `docs/continuation/current-status.md`
 - `docs/README.md`
 - `docs/product/service-overview.md`
 - `docs/data/domain-model.md`
