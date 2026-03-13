@@ -1,0 +1,11 @@
+{
+  "venvPath": "/home/ssafy/miniconda3/envs",
+  "venv": "kbo-record-api",
+  "pythonVersion": "3.12",
+  "executionEnvironments": [
+    {
+      "root": "apps/api",
+      "extraPaths": ["apps/api"]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Frontend
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Conda / virtualenv
+.conda/
+.venv/
+env/
+
+# Environment files
+.env
+.env.*
