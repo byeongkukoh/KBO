@@ -1,4 +1,4 @@
-# AGENT.md
+# RULES.md
 
 이 문서는 KBO Record 저장소에서 사람이든 AI든 동일한 기준으로 작업하기 위한 운영 규칙 문서다.
 
@@ -68,20 +68,38 @@
 
 ### Commit Message Rules
 
-- 커밋 메시지는 명령형 현재 시제로 작성한다.
-- 첫 줄은 짧고 구체적으로 작성한다.
-- 권장 형식은 다음 중 하나를 따른다.
-  - `Add ...`
-  - `Update ...`
-  - `Fix ...`
-  - `Refine ...`
-  - `Document ...`
+- 커밋 제목은 `Type(Scope): Message` 형식을 사용한다.
+- `Type` 과 `Scope` 는 영어로 작성한다.
+- `Message` 는 한국어로 작성한다.
+- 필요하면 본문(body)을 추가할 수 있고, 본문은 한국어로 작성한다.
+- 제목 한 줄만 봐도 변경 이유가 드러나야 한다.
+- `Scope` 는 생략하지 않는 것을 기본으로 한다.
+
+권장 `Type` 예시는 다음과 같다.
+
+- `feat`
+- `fix`
+- `refactor`
+- `docs`
+- `build`
+- `chore`
+- `test`
 
 예시:
 
-- `Add FastAPI health check endpoint`
-- `Document player and game data scope`
-- `Refine frontend TypeScript build config`
+- `feat(api): 선수 기록 조회 API를 추가한다`
+- `docs(data): 고급 지표 의존성 문서를 정리한다`
+- `fix(web): 경기 상세 화면 필터 오류를 수정한다`
+
+본문 예시:
+
+```text
+docs(operations): KBO 원천 데이터 수집 범위를 정리한다
+
+- KBO 공식 홈페이지를 기본 원천 소스로 명시한다
+- SCRAPLING 사용 방향과 검증 포인트를 추가한다
+- MVP 의사결정 게이트를 문서에 반영한다
+```
 
 ### Commit Content Rules
 

@@ -14,5 +14,8 @@
 1. `docs/product/service-overview.md`
 2. `docs/product/information-architecture.md`
 3. `docs/data/domain-model.md`
-4. `docs/operations/data-pipeline.md`
-5. `docs/architecture/system-overview.md`
+4. `docs/data/statistics-catalog.md`
+5. `docs/operations/data-pipeline.md`
+6. `docs/architecture/system-overview.md`
+7. `docs/operations/kbo-source-inventory.md`
+8. `docs/data/advanced-metric-dependencies.md`
