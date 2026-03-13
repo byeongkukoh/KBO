@@ -8,6 +8,7 @@
 - `docs/architecture/`: 시스템 구조와 기술 설계 문서
 - `docs/data/`: 데이터 모델, 수집 대상, 저장 전략 문서
 - `docs/operations/`: 배치, 스크래핑, 운영 흐름 문서
+- `docs/continuation/`: 다음 세션과 다른 환경에서 작업을 이어가기 위한 handoff 문서
 
 ## Suggested Writing Order
 
@@ -19,3 +20,4 @@
 6. `docs/architecture/system-overview.md`
 7. `docs/operations/kbo-source-inventory.md`
 8. `docs/data/advanced-metric-dependencies.md`
+9. `docs/continuation/current-status.md`
