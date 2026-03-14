@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.api.routes.games import router as games_router
 from app.api.routes.health import router as health_router
 from app.api.routes.players import router as players_router
+from app.api.routes.seasons import router as seasons_router
 
 
 def create_app() -> FastAPI:
@@ -14,6 +15,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(games_router, prefix="/api")
     app.include_router(players_router, prefix="/api")
+    app.include_router(seasons_router, prefix="/api")
     return app
 
 
