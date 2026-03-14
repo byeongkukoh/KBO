@@ -1,0 +1,16 @@
+{
+  "game": [
+    {
+      "LE_ID": 1,
+      "SR_ID": 1,
+      "SEASON_ID": 2026,
+      "G_DT": "20260314",
+      "G_ID": "20260314WONC0",
+      "GAME_STATE_SC": "3",
+      "AWAY_ID": "WO",
+      "HOME_ID": "NC",
+      "AWAY_NM": "키움",
+      "HOME_NM": "NC"
+    }
+  ]
+}
