@@ -1,7 +1,7 @@
 from dataclasses import asdict
 
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -74,8 +74,12 @@ def get_seasons(session: Session = Depends(get_db)) -> SeasonListResponse:
 
 
 @router.get("/seasons/{season}/snapshot", response_model=SeasonSnapshotResponse)
-def get_season_snapshot(season: int, session: Session = Depends(get_db)) -> SeasonSnapshotResponse:
-    snapshot = get_season_center_snapshot(session, season)
+def get_season_snapshot(
+    season: int,
+    series_code: str | None = Query(default=None, pattern="^(preseason|regular|postseason)$"),
+    session: Session = Depends(get_db),
+) -> SeasonSnapshotResponse:
+    snapshot = get_season_center_snapshot(session, season, series_code=series_code)
     if snapshot is None:
         raise HTTPException(status_code=404, detail="season not found")
 

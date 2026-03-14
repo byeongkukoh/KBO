@@ -125,7 +125,7 @@ def list_available_seasons(session: Session) -> list[int]:
     return [int(row[0]) for row in rows]
 
 
-def get_season_center_snapshot(session: Session, season: int) -> SeasonCenterSnapshot | None:
+def get_season_center_snapshot(session: Session, season: int, series_code: str | None = None) -> SeasonCenterSnapshot | None:
     stmt: Select[tuple[Game]] = (
         select(Game)
         .where(Game.season_id == season)
@@ -138,6 +138,8 @@ def get_season_center_snapshot(session: Session, season: int) -> SeasonCenterSna
         )
         .order_by(Game.game_date.asc(), Game.kbo_game_id.asc())
     )
+    if series_code is not None:
+        stmt = stmt.where(Game.series_code == series_code)
     games = list(session.execute(stmt).scalars())
     if not games:
         return None
@@ -149,7 +151,7 @@ def get_season_center_snapshot(session: Session, season: int) -> SeasonCenterSna
 
     return SeasonCenterSnapshot(
         season=season,
-        snapshot_label=f"{latest_date.isoformat()} db snapshot",
+        snapshot_label=f"{latest_date.isoformat()} db snapshot" if series_code is None else f"{latest_date.isoformat()} {series_code} db snapshot",
         standings=standings,
         players=players,
     )
