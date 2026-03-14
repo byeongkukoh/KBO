@@ -8,9 +8,10 @@
 
 - 저장소 구조는 monorepo 기준으로 `apps/web`, `apps/api`, `docs/` 로 정리되어 있다.
 - 프로젝트 운영 규칙은 `RULES.md`, AI 저장소 가이드는 `AGENTS.md` 에 정리되어 있다.
-- 프론트엔드는 React + TypeScript + Tailwind CSS, 백엔드는 Conda 기반 Python + FastAPI 로 스캐폴드가 완료된 상태다.
-- 데이터베이스는 PostgreSQL 사용 예정이며, 초기 스키마 초안을 `docs/data/postgresql-schema-outline.md` 에 정리했다.
-- 수집 경계는 MVP 기준으로 단일 ingestion 앱을 우선하고, source collection 과 batch orchestration 책임을 내부 모듈로 나누는 방향으로 정리했다.
+- 프론트엔드는 React + TypeScript + Tailwind CSS, 백엔드는 Conda 기반 Python + FastAPI 로 운영한다.
+- `compose.yml` 에 PostgreSQL 개발 컨테이너 구성을 추가했고, API/ingest 는 호스트에서 실행하는 방식을 유지한다.
+- `apps/api` 에 단일 경기 vertical slice 백엔드 구현이 추가되어 fixture 또는 live 소스로 1경기 ingest, PostgreSQL 저장, 파생 지표 계산, 조회 API 제공이 가능하다.
+- `apps/web` 에 단일 검증 화면과 Playwright smoke 테스트가 추가되어 fixture 기반 경기/선수 파생 지표 응답을 한 화면에서 확인할 수 있다.
 
 ## Completed Planning Work
 
@@ -26,6 +27,11 @@
   - `docs/operations/data-pipeline.md`
   - `docs/operations/kbo-source-inventory.md`
   - `docs/operations/release-checklist.md`
+- 백엔드 최소 vertical slice 구현 완료
+  - Alembic 초기 마이그레이션, SQLAlchemy 모델, ingest CLI(`python -m app.ingest.cli ingest-game`), fixture 기반 파서/적재/API 테스트 추가
+  - API 엔드포인트 `GET /api/games/{game_id}`, `GET /api/players/{player_key}/summary?scope=ingested` 추가
+- 프론트엔드 검증 화면 구현 완료
+  - `apps/web/src/App.tsx` 단일 검증 화면, `GameVerificationPanel`, API helper/types, Playwright 설정과 smoke 테스트 추가
 
 ## Verified Decisions
 
@@ -57,6 +63,7 @@
 - `GameCenter` 는 메인 shell + `/ws/Main.asmx/GetKboGameDate`, `/ws/Main.asmx/GetKboGameList` + section별 HTML partial 로딩 구조를 사용한다.
 - 현재 확인된 `GameCenter` section 경로는 `Preview/StartPitcher.aspx`, `Preview/Team.aspx`, `Preview/LineUp.aspx`, `ReviewNew.aspx`, `KeyPlayerPitcher.aspx`, `KeyPlayerHitter.aspx`, `Highlight.aspx` 이다.
 - `ReviewNew.aspx` 는 다시 `/ws/Schedule.asmx/GetScoreBoardScroll`, `/ws/Schedule.asmx/GetBoxScoreScroll` 호출에 의존하고, 키플레이어/하이라이트도 `ws/Schedule.asmx` 보조 호출 흔적이 보인다.
+- 현재 vertical slice fixture는 공개 HTML만이 아니라 관측된 `ws/*` 응답 구조를 저장한 JSON fixture를 acceptance 기준으로 사용한다.
 - `Player/Search` 는 선수 기본 프로필 필드를 제공한다.
 - `Player/Search` 는 `/ws/Controls.asmx/GetSearchPlayer` 응답의 `P_LINK` 를 통해 현역은 `/Record/Player/HitterDetail/Basic.aspx?playerId=...`, 은퇴 선수는 `/Record/Retire/Hitter.aspx?playerId=...` 로 연결된다.
 - 현역 선수 상세는 프로필 + `Basic`, `Total`, `Daily`, `Game`, `Situation`, `Award`, `SeasonReg` 탭 구조를 제공한다.
@@ -77,10 +84,10 @@
 
 ## Recommended Next Tasks
 
-1. `ws/*` 경로 정책과 공개 HTML 경로만으로 가능한 수집 범위를 나눠서 MVP 배치 기준을 확정한다.
-2. `GameCenter` 의 play-by-play 수준 raw 이벤트 로그 경로를 추가 검증한다.
-3. 현역 투수/은퇴 투수 상세 페이지의 필드 및 탭 구조를 타자 상세와 동일 기준으로 확인한다.
-4. `postgresql-schema-outline.md` 를 기준으로 실제 테이블 구현 우선순위와 적재 순서를 확정한다.
+1. 로컬 conda 환경에서 Alembic migration, ingest CLI, FastAPI 실행을 끝까지 검증하는 운영 가이드를 보강한다.
+2. fixture의 게임 수를 점진적으로 늘리면서 파서 안정성 회귀 테스트를 확장한다.
+3. `GameCenter` play-by-play 공개 경로가 검증되면 별도 staged raw event 계층 도입 여부를 결정한다.
+4. 선수 식별자(`player_id`)를 안정적으로 연결할 수 있는 공개 경로를 확인해 `player_key` 임시 정책을 고도화한다.
 
 ## Working Rule For Future Sessions
 
