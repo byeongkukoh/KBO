@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -8,6 +8,9 @@ from app.db.base import Base
 
 class Game(Base):
     __tablename__ = "games"
+    __table_args__ = (
+        Index("ix_games_season_series_date", "season_id", "series_code", "game_date"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     kbo_game_id: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
@@ -17,6 +20,8 @@ class Game(Base):
     season_id: Mapped[int] = mapped_column(Integer, nullable=False)
     le_id: Mapped[int] = mapped_column(Integer, nullable=False)
     sr_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    series_code: Mapped[str] = mapped_column(String(32), nullable=False, default="regular")
+    series_name: Mapped[str] = mapped_column(String(32), nullable=False, default="정규경기")
     away_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="RESTRICT"), nullable=False)
     home_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="RESTRICT"), nullable=False)
     away_score: Mapped[int] = mapped_column(Integer, nullable=False)
