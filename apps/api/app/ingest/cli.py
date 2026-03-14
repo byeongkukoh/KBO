@@ -1,9 +1,12 @@
 import argparse
+from dataclasses import asdict
 import json
+from datetime import date
 from pathlib import Path
 
 from app.db.session import get_session_factory
 from app.ingest.orchestrators.ingest_game import ingest_single_game
+from app.ingest.orchestrators.ingest_season import ingest_season
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,6 +18,20 @@ def build_parser() -> argparse.ArgumentParser:
     ingest_parser.add_argument("--game-id", required=True)
     ingest_parser.add_argument("--fixture-dir", default="apps/api/tests/fixtures/kbo")
     ingest_parser.add_argument("--use-live", action="store_true")
+
+    season_parser = subparsers.add_parser("ingest-season", help="Ingest one KBO season by series group")
+    season_parser.add_argument("--season", type=int, required=True)
+    season_parser.add_argument(
+        "--series-group",
+        action="append",
+        choices=["preseason", "regular", "postseason"],
+        required=True,
+        dest="series_groups",
+    )
+    season_parser.add_argument("--fixture-dir", default="apps/api/tests/fixtures/kbo")
+    season_parser.add_argument("--use-live", action="store_true")
+    season_parser.add_argument("--start-date")
+    season_parser.add_argument("--end-date")
     return parser
 
 
@@ -33,6 +50,21 @@ def main() -> None:
                 use_live=bool(args.use_live),
             )
         print(json.dumps(result, ensure_ascii=False))
+        return
+
+    if args.command == "ingest-season":
+        session_factory = get_session_factory()
+        with session_factory() as session:
+            result = ingest_season(
+                session=session,
+                season=args.season,
+                series_groups=list(args.series_groups),
+                fixture_dir=Path(args.fixture_dir),
+                use_live=bool(args.use_live),
+                start_date=date.fromisoformat(args.start_date) if args.start_date else None,
+                end_date=date.fromisoformat(args.end_date) if args.end_date else None,
+            )
+        print(json.dumps(asdict(result), ensure_ascii=False))
 
 
 if __name__ == "__main__":
