@@ -70,4 +70,5 @@
 ## Working Rule For Future Sessions
 
 - 새 세션을 시작하면 먼저 이 문서를 읽고, 이어서 `AGENTS.md`, `RULES.md`, 관련 도메인 문서를 확인한다.
-- 의미 있는 작업이 끝나면 이 문서의 `Current Snapshot`, `Completed Planning Work`, `Recommended Next Tasks` 를 갱신한다.
+- 이 문서는 handoff 시점에만 보는 문서가 아니라 현재 작업 상태를 유지하는 기준 문서로 간주하고, 의미 있는 작업이 진행되거나 상태가 바뀔 때마다 계속 갱신한다.
+- 작업을 멈추거나 마칠 때는 최소한 이 문서의 `Current Snapshot`, `Completed Planning Work`, `Recommended Next Tasks` 가 실제 상태와 다음 우선순위를 정확히 반영하는지 다시 확인한다.

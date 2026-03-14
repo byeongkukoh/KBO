@@ -50,7 +50,7 @@
 - 세션 handoff 와 현재 작업 상태는 `docs/continuation/` 에 기록한다.
 - 새로운 문서는 한 주제만 다루고, 파일명은 소문자 kebab-case를 사용한다.
 - 문서에는 확정 사항과 향후 검토 사항을 구분해서 적는다.
-- 다른 환경에서 이어서 작업할 가능성이 있으면 `docs/continuation/current-status.md` 를 함께 갱신한다.
+- `docs/continuation/current-status.md` 는 handoff 전용 문서가 아니라 현재 작업 상태를 유지하는 기준 문서로 보고, 의미 있는 작업이 진행되거나 상태가 바뀔 때마다 계속 갱신한다.
 
 ## 4. Git Conventions
 
@@ -137,6 +137,7 @@ docs(operations): KBO 원천 데이터 수집 범위를 정리한다
 작업 후 확인:
 
 - 관련 문서가 최신 상태인가?
+- `docs/continuation/current-status.md` 가 현재 상태, 최근 완료 작업, 다음 우선순위를 정확히 반영하는가?
 - 불필요한 생성 파일이 포함되지 않았는가?
 - 검증 결과가 있는가?
 - 다음 작업자가 바로 이해할 수 있는 상태인가?
