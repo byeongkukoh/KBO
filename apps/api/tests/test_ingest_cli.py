@@ -44,12 +44,12 @@ def test_ingest_single_game_is_idempotent(sqlite_db_url: str) -> None:
 
 def test_merge_duplicate_batting_and_pitching_rows() -> None:
     batting_rows = [
-        PlayerBattingParsed("WO", "wo-어준서", "어준서", 8, "SS", 2, 2, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1),
-        PlayerBattingParsed("WO", "wo-어준서", "어준서", 9, "PH", 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0),
+        PlayerBattingParsed("WO", "wo-어준서", "어준서", 8, "SS", 2, 2, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1),
+        PlayerBattingParsed("WO", "wo-어준서", "어준서", 9, "PH", 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0),
     ]
     pitching_rows = [
-        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 2, 5, 18, 4, 1, 0, 0, 1, 0, 0),
-        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 1, 2, 9, 1, 0, 0, 1, 0, 0, 0),
+        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 2, 5, 18, 4, 1, 0, 0, 1, 0, 0, "승"),
+        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 1, 2, 9, 1, 0, 0, 1, 0, 0, 0, None),
     ]
 
     merged_batting = _merge_batting_rows(batting_rows)
@@ -61,12 +61,14 @@ def test_merge_duplicate_batting_and_pitching_rows() -> None:
     assert merged_batting[0].hits == 2
     assert merged_batting[0].doubles == 1
     assert merged_batting[0].walks == 1
+    assert merged_batting[0].stolen_bases == 1
 
     assert len(merged_pitching) == 1
     assert merged_pitching[0].innings_outs == 3
     assert merged_pitching[0].batters_faced == 7
     assert merged_pitching[0].walks_allowed == 1
     assert merged_pitching[0].strikeouts == 1
+    assert merged_pitching[0].decision_code == "승"
 
 
 def test_ingest_season_filters_by_series_and_completed_state(monkeypatch: pytest.MonkeyPatch, sqlite_db_url: str) -> None:

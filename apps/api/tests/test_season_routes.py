@@ -236,7 +236,7 @@ def test_get_season_snapshot(client) -> None:
     assert data["standings"][0]["draws"] == 1
     assert data["standings"][0]["hits"] == 27
     assert data["standings"][0]["games_back"] == 0.0
-    assert data["standings"][0]["stolen_bases"] is None
+    assert data["standings"][0]["stolen_bases"] == 0
     hitter = next(item for item in data["players"] if item["player_id"] == "ss-구자욱")
     assert hitter["qualified_hitter"] is True
     assert hitter["hits"] == 6
@@ -244,7 +244,7 @@ def test_get_season_snapshot(client) -> None:
     pitcher = next(item for item in data["players"] if item["player_id"] == "ss-원태인")
     assert pitcher["qualified_pitcher"] is True
     assert pitcher["era"] == 3.0
-    assert pitcher["wins"] is None
+    assert pitcher["wins"] == 0
 
 
 def test_missing_season_returns_not_found(client) -> None:
