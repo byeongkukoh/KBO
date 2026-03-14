@@ -1,137 +1,457 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { GameVerificationPanel } from "./components/GameVerificationPanel";
-import { getGameDetail, getPlayerSummary } from "./lib/api";
-import type { GameDetail, PlayerSummary } from "./types/game";
+import { getDefaultSeason, getLeaderboardCategories, getSeasonSnapshot, sortPlayers, sortStandings, type FullViewMode, type PlayerGroup, type TeamSortKey } from "./lib/records";
+import type { AppView, LeaderboardCategory } from "./types/records";
 
-const defaultGameId = "20260314WONC0";
-const defaultPlayerKey = "wo-안치홍";
+const currentYear = new Date().getFullYear();
+const teamSortOptions: Array<{ key: TeamSortKey; label: string }> = [
+  { key: "winPct", label: "승률" },
+  { key: "hits", label: "안타" },
+  { key: "doubles", label: "2루타" },
+  { key: "battingAvg", label: "타율" },
+  { key: "ops", label: "OPS" },
+  { key: "era", label: "평균자책점" },
+];
 
-function App() {
-  const [gameId, setGameId] = useState(defaultGameId);
-  const [playerKey, setPlayerKey] = useState(defaultPlayerKey);
-  const [game, setGame] = useState<GameDetail | null>(null);
-  const [summary, setSummary] = useState<PlayerSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const [nextGame, nextSummary] = await Promise.all([getGameDetail(gameId), getPlayerSummary(playerKey)]);
-
-        if (cancelled) {
-          return;
-        }
-
-        setGame(nextGame);
-        setSummary(nextSummary);
-      } catch (caughtError) {
-        if (cancelled) {
-          return;
-        }
-
-        const message = caughtError instanceof Error ? caughtError.message : "알 수 없는 오류가 발생했습니다.";
-        setGame(null);
-        setSummary(null);
-        setError(message);
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [gameId, playerKey, reloadToken]);
-
-  const helperText = useMemo(
-    () =>
-      "fixture 또는 ingest된 실제 게임을 기준으로 PostgreSQL 적재 결과와 파생 통계를 한 화면에서 확인합니다.",
-    [],
+function SeasonSelect({ seasons, value, onChange }: { seasons: number[]; value: number; onChange: (value: number) => void }) {
+  return (
+    <label className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">
+      <span className="text-slate-400">시즌</span>
+      <select
+        className="bg-transparent font-medium text-white outline-none"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      >
+        {seasons.map((season) => (
+          <option key={season} value={season} className="bg-slate-900 text-white">
+            {season}
+          </option>
+        ))}
+      </select>
+    </label>
   );
+}
+
+function Sidebar({ view, onChange }: { view: AppView; onChange: (view: AppView) => void }) {
+  return (
+    <aside className="flex w-full flex-col justify-between rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.92))] p-5 shadow-[0_30px_90px_rgba(2,6,23,0.55)] lg:w-72">
+      <div>
+        <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/10 p-4">
+          <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/70">KBO Record</p>
+          <h1 className="mt-3 text-2xl font-semibold text-white">Season Center</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            시즌을 먼저 고르고 팀 순위와 선수 기록을 한 흐름으로 탐색하는 seeded preview 화면입니다.
+          </p>
+        </div>
+
+        <nav className="mt-8 grid gap-2">
+          {[
+            { key: "home" as const, label: "홈", description: "팀 순위와 팀 통계" },
+            { key: "players" as const, label: "선수 기록", description: "Top 5와 전체 기록" },
+          ].map((item) => {
+            const active = view === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={`rounded-2xl border px-4 py-4 text-left transition ${
+                  active
+                    ? "border-cyan-300/30 bg-cyan-300/12 text-white"
+                    : "border-white/8 bg-white/4 text-slate-300 hover:border-white/14 hover:bg-white/7"
+                }`}
+                onClick={() => onChange(item.key)}
+              >
+                <div className="text-base font-semibold">{item.label}</div>
+                <div className="mt-1 text-sm text-slate-400">{item.description}</div>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-amber-300/15 bg-amber-300/8 p-4 text-sm text-amber-50/85">
+        <div className="text-xs uppercase tracking-[0.24em] text-amber-100/65">Data Mode</div>
+        <div className="mt-2 font-semibold">Seeded Preview</div>
+        <div className="mt-2 leading-6">실시간 순위가 아니라 프론트 정보 구조와 상호작용을 검증하는 스냅샷 데이터입니다.</div>
+      </div>
+    </aside>
+  );
+}
+
+function HomeView({ season, onSeasonChange }: { season: number; onSeasonChange: (season: number) => void }) {
+  const snapshot = getSeasonSnapshot(season);
+  const [sortKey, setSortKey] = useState<TeamSortKey>("winPct");
+  const seasons = useMemo(() => [2026, 2025, 2024], []);
+  const sortedStandings = useMemo(() => sortStandings(snapshot.standings, sortKey), [snapshot.standings, sortKey]);
+  const podium = sortedStandings.slice(0, 3);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_52%,#020617_100%)] text-slate-50">
-      <section className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-10 lg:py-16">
-        <div className="flex flex-col gap-10">
-          <header className="grid gap-6 lg:grid-cols-[1.35fr_0.85fr] lg:items-end">
-            <div>
-              <span className="inline-flex w-fit rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1 text-xs uppercase tracking-[0.28em] text-cyan-100">
-                KBO Vertical Slice
-              </span>
-              <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                raw 게임 데이터에서 파생 선수 통계까지 이어지는 검증 화면
-              </h1>
-              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">{helperText}</p>
-            </div>
+    <section className="space-y-8">
+      <div className="flex flex-col gap-4 rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_28%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.94))] p-6 shadow-[0_30px_90px_rgba(8,47,73,0.35)] lg:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <span className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-cyan-100/80">
+              Home / Standings
+            </span>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{season} 시즌 팀 순위</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+              현재 접속 연도를 기준으로 기본 시즌을 잡되, 연도 드롭다운으로 이전 시즌 순위를 바로 비교할 수 있습니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <SeasonSelect seasons={seasons} value={season} onChange={onSeasonChange} />
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">{snapshot.snapshotLabel}</div>
+          </div>
+        </div>
 
-            <form
-              className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.42)] backdrop-blur"
-              onSubmit={(event) => {
-                event.preventDefault();
-                setReloadToken((current) => current + 1);
-              }}
-            >
-              <div className="grid gap-4">
-                <label className="grid gap-2 text-sm text-slate-300">
-                  <span className="uppercase tracking-[0.18em] text-slate-400">Game ID</span>
-                  <input
-                    className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-cyan-300/50"
-                    value={gameId}
-                    onChange={(event) => setGameId(event.target.value)}
-                    placeholder="20260314WONC0"
-                  />
-                </label>
-                <label className="grid gap-2 text-sm text-slate-300">
-                  <span className="uppercase tracking-[0.18em] text-slate-400">Player Key</span>
-                  <input
-                    className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-cyan-300/50"
-                    value={playerKey}
-                    onChange={(event) => setPlayerKey(event.target.value)}
-                    placeholder="wo-안치홍"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="mt-2 rounded-2xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-200"
-                >
-                  검증 데이터 다시 불러오기
-                </button>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {podium.map((team, index) => (
+            <article key={team.teamCode} className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5 backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-400">#{index + 1}</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-white">{team.teamName}</h3>
+                  <p className="mt-2 text-sm text-cyan-100/75">{team.teamCode} · 승률 {team.winPct.toFixed(3)}</p>
+                </div>
+                <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-right">
+                  <div className="text-xs text-cyan-100/70">Games Back</div>
+                  <div className="mt-1 text-lg font-semibold text-white">{team.gamesBack === 0 ? "-" : team.gamesBack.toFixed(1)}</div>
+                </div>
               </div>
-            </form>
-          </header>
+              <dl className="mt-5 grid grid-cols-3 gap-3 text-sm text-slate-200">
+                <div className="rounded-2xl border border-white/8 bg-white/4 p-3">
+                  <dt className="text-slate-400">승-패-무</dt>
+                  <dd className="mt-1 font-semibold text-white">{team.wins}-{team.losses}-{team.draws}</dd>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-white/4 p-3">
+                  <dt className="text-slate-400">최근 10경기</dt>
+                  <dd className="mt-1 font-semibold text-white">{team.lastTen}</dd>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-white/4 p-3">
+                  <dt className="text-slate-400">연속</dt>
+                  <dd className="mt-1 font-semibold text-white">{team.streak}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+      </div>
 
-          {isLoading ? (
-            <section className="grid gap-4 lg:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-52 animate-pulse rounded-[28px] border border-white/8 bg-white/5"
-                />
+      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
+        <div className="flex flex-col gap-4 border-b border-white/10 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className="text-xl font-semibold text-white">팀별 시즌 통계</h3>
+            <p className="mt-1 text-sm text-slate-400">기본 정렬은 승률이며, 컬럼 버튼으로 시즌 통계 기준을 바로 바꿀 수 있습니다.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {teamSortOptions.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={`rounded-full border px-3 py-2 text-sm transition ${sortKey === option.key ? "border-cyan-300/35 bg-cyan-300/12 text-white" : "border-white/10 bg-white/5 text-slate-300 hover:border-white/15 hover:bg-white/8"}`}
+                onClick={() => setSortKey(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-slate-200">
+            <thead className="bg-white/6 text-xs uppercase tracking-[0.18em] text-slate-400">
+              <tr>
+                <th className="px-4 py-3 text-left">순위</th>
+                <th className="px-4 py-3 text-left">팀</th>
+                <th className="px-4 py-3 text-right">승률</th>
+                <th className="px-4 py-3 text-right">안타</th>
+                <th className="px-4 py-3 text-right">2루타</th>
+                <th className="px-4 py-3 text-right">타율</th>
+                <th className="px-4 py-3 text-right">OPS</th>
+                <th className="px-4 py-3 text-right">ERA</th>
+                <th className="px-4 py-3 text-right">득실차</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedStandings.map((team, index) => (
+                <tr key={team.teamCode} className="border-t border-white/8">
+                  <td className="px-4 py-4 text-left font-semibold text-white">{index + 1}</td>
+                  <td className="px-4 py-4">
+                    <div className="font-medium text-white">{team.teamName}</div>
+                    <div className="text-xs text-slate-400">{team.wins}-{team.losses}-{team.draws}</div>
+                  </td>
+                  <td className="px-4 py-4 text-right">{team.winPct.toFixed(3)}</td>
+                  <td className="px-4 py-4 text-right">{team.hits}</td>
+                  <td className="px-4 py-4 text-right">{team.doubles}</td>
+                  <td className="px-4 py-4 text-right">{team.battingAvg.toFixed(3)}</td>
+                  <td className="px-4 py-4 text-right">{team.ops.toFixed(3)}</td>
+                  <td className="px-4 py-4 text-right">{team.era.toFixed(2)}</td>
+                  <td className={`px-4 py-4 text-right ${team.runDiff >= 0 ? "text-cyan-200" : "text-rose-200"}`}>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</td>
+                </tr>
               ))}
-            </section>
-          ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-          {!isLoading && error ? (
-            <section className="rounded-[28px] border border-rose-300/20 bg-rose-400/10 p-6 text-rose-100">
-              <p className="text-xs uppercase tracking-[0.24em] text-rose-200/70">Fetch Error</p>
-              <h2 className="mt-3 text-2xl font-semibold">데이터를 불러오지 못했습니다.</h2>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-rose-100/85">{error}</p>
-            </section>
-          ) : null}
+function LeaderboardCard({ season, category, qualifiedOnly }: { season: number; category: LeaderboardCategory; qualifiedOnly: boolean }) {
+  const snapshot = getSeasonSnapshot(season);
+  const group: PlayerGroup = category.playerType === "hitter" ? "hitters" : "pitchers";
+  const rows = sortPlayers(
+    snapshot.players.filter((player) => (group === "hitters" ? player.battingAvg !== undefined : player.era !== undefined)).filter((player) => (group === "hitters" ? (qualifiedOnly ? player.qualifiedHitter : true) : qualifiedOnly ? player.qualifiedPitcher : true)),
+    category,
+  ).slice(0, 5);
 
-          {!isLoading && !error && game && summary ? <GameVerificationPanel game={game} summary={summary} /> : null}
+  return (
+    <article className="rounded-[24px] border border-white/10 bg-slate-950/60 p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{category.playerType === "hitter" ? "Hitter" : "Pitcher"}</p>
+          <h3 className="mt-2 text-xl font-semibold text-white">{category.label}</h3>
+        </div>
+        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">Top 5</div>
+      </div>
+      <div className="mt-4 space-y-2">
+        {rows.map((player, index) => {
+          const value = player[category.statKey] as number | undefined;
+          return (
+            <div key={`${category.key}-${player.playerId}`} className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-300/12 text-sm font-semibold text-cyan-100">{index + 1}</div>
+                <div>
+                  <div className="font-medium text-white">{player.playerName}</div>
+                  <div className="text-xs text-slate-400">{player.teamCode}</div>
+                </div>
+              </div>
+              <div className="text-right font-semibold text-white">{value === undefined ? "-" : category.precision ? value.toFixed(category.precision) : value}</div>
+            </div>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
+function PlayersView({ season, onSeasonChange }: { season: number; onSeasonChange: (season: number) => void }) {
+  const seasons = useMemo(() => [2026, 2025, 2024], []);
+  const snapshot = getSeasonSnapshot(season);
+  const [mode, setMode] = useState<FullViewMode>("top5");
+  const [qualifiedHittersOnly, setQualifiedHittersOnly] = useState(true);
+  const [qualifiedPitchersOnly, setQualifiedPitchersOnly] = useState(true);
+  const [playerGroup, setPlayerGroup] = useState<PlayerGroup>("hitters");
+  const hitterCategories = getLeaderboardCategories("hitters");
+  const pitcherCategories = getLeaderboardCategories("pitchers");
+  const fullCategories = getLeaderboardCategories(playerGroup);
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<string>(fullCategories[0].key);
+  const selectedCategory = fullCategories.find((category) => category.key === selectedCategoryKey) ?? fullCategories[0];
+
+  const fullRows = useMemo(() => {
+    const groupRows = snapshot.players.filter((player) => (playerGroup === "hitters" ? player.battingAvg !== undefined : player.era !== undefined));
+    const filtered = groupRows.filter((player) =>
+      playerGroup === "hitters" ? (qualifiedHittersOnly ? player.qualifiedHitter : true) : qualifiedPitchersOnly ? player.qualifiedPitcher : true,
+    );
+    return sortPlayers(filtered, selectedCategory);
+  }, [playerGroup, qualifiedHittersOnly, qualifiedPitchersOnly, selectedCategory, snapshot.players]);
+
+  return (
+    <section className="space-y-8">
+      <div className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.16),transparent_26%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.94))] p-6 shadow-[0_30px_90px_rgba(120,53,15,0.3)] lg:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <span className="inline-flex rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-amber-100/80">
+              Players / Leaderboards
+            </span>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{season} 시즌 선수 기록</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">부문별 Top 5를 먼저 보고, 전체 보기로 넘어가면 정렬 가능한 전체 기록표를 바로 확인할 수 있습니다.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <SeasonSelect seasons={seasons} value={season} onChange={onSeasonChange} />
+            <button
+              type="button"
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:border-white/20 hover:bg-white/8"
+              onClick={() => setMode((current) => (current === "top5" ? "full" : "top5"))}
+            >
+              {mode === "top5" ? "전체 보기" : "Top 5 보기"}
+            </button>
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">{snapshot.snapshotLabel}</div>
+          </div>
+        </div>
+      </div>
+
+      {mode === "top5" ? (
+        <div className="space-y-8">
+          <section>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h3 className="text-2xl font-semibold text-white">타자 Top 5</h3>
+              <button
+                type="button"
+                className={`rounded-full border px-4 py-2 text-sm transition ${qualifiedHittersOnly ? "border-cyan-300/30 bg-cyan-300/12 text-white" : "border-white/10 bg-white/5 text-slate-300"}`}
+                onClick={() => setQualifiedHittersOnly((current) => !current)}
+              >
+                {qualifiedHittersOnly ? "정규타석만 보기" : "전체 타자 보기"}
+              </button>
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              {hitterCategories.map((category) => (
+                <LeaderboardCard key={category.key} season={season} category={category} qualifiedOnly={qualifiedHittersOnly} />
+              ))}
+            </div>
+          </section>
+          <section>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h3 className="text-2xl font-semibold text-white">투수 Top 5</h3>
+              <button
+                type="button"
+                className={`rounded-full border px-4 py-2 text-sm transition ${qualifiedPitchersOnly ? "border-amber-300/30 bg-amber-300/12 text-white" : "border-white/10 bg-white/5 text-slate-300"}`}
+                onClick={() => setQualifiedPitchersOnly((current) => !current)}
+              >
+                {qualifiedPitchersOnly ? "정규이닝만 보기" : "전체 투수 보기"}
+              </button>
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              {pitcherCategories.map((category) => (
+                <LeaderboardCard key={category.key} season={season} category={category} qualifiedOnly={qualifiedPitchersOnly} />
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : (
+        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
+          <div className="flex flex-col gap-4 border-b border-white/10 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-white">전체 선수 기록</h3>
+              <p className="mt-1 text-sm text-slate-400">기록 부문을 누르면 해당 컬럼 기준으로 전체 테이블이 정렬됩니다.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`rounded-full border px-3 py-2 text-sm transition ${playerGroup === "hitters" ? "border-cyan-300/35 bg-cyan-300/12 text-white" : "border-white/10 bg-white/5 text-slate-300"}`}
+                onClick={() => {
+                  setPlayerGroup("hitters");
+                  setSelectedCategoryKey(hitterCategories[0].key);
+                }}
+              >
+                타자
+              </button>
+              <button
+                type="button"
+                className={`rounded-full border px-3 py-2 text-sm transition ${playerGroup === "pitchers" ? "border-amber-300/35 bg-amber-300/12 text-white" : "border-white/10 bg-white/5 text-slate-300"}`}
+                onClick={() => {
+                  setPlayerGroup("pitchers");
+                  setSelectedCategoryKey(pitcherCategories[0].key);
+                }}
+              >
+                투수
+              </button>
+              {fullCategories.map((category) => (
+                <button
+                  key={category.key}
+                  type="button"
+                  className={`rounded-full border px-3 py-2 text-sm transition ${selectedCategory.key === category.key ? "border-white/20 bg-white/10 text-white" : "border-white/10 bg-white/5 text-slate-300"}`}
+                  onClick={() => setSelectedCategoryKey(category.key)}
+                >
+                  {category.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className={`rounded-full border px-3 py-2 text-sm transition ${playerGroup === "hitters" ? qualifiedHittersOnly ? "border-cyan-300/35 bg-cyan-300/12 text-white" : "border-white/10 bg-white/5 text-slate-300" : qualifiedPitchersOnly ? "border-amber-300/35 bg-amber-300/12 text-white" : "border-white/10 bg-white/5 text-slate-300"}`}
+                onClick={() => {
+                  if (playerGroup === "hitters") {
+                    setQualifiedHittersOnly((current) => !current);
+                    return;
+                  }
+                  setQualifiedPitchersOnly((current) => !current);
+                }}
+              >
+                {playerGroup === "hitters"
+                  ? qualifiedHittersOnly
+                    ? "정규타석만"
+                    : "전체 타자"
+                  : qualifiedPitchersOnly
+                    ? "정규이닝만"
+                    : "전체 투수"}
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-slate-200">
+              <thead className="bg-white/6 text-xs uppercase tracking-[0.18em] text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">순위</th>
+                  <th className="px-4 py-3 text-left">선수</th>
+                  <th className="px-4 py-3 text-left">팀</th>
+                  <th className="px-4 py-3 text-right">경기</th>
+                  {playerGroup === "hitters" ? (
+                    <>
+                      <th className="px-4 py-3 text-right">타율</th>
+                      <th className="px-4 py-3 text-right">안타</th>
+                      <th className="px-4 py-3 text-right">2루타</th>
+                      <th className="px-4 py-3 text-right">홈런</th>
+                      <th className="px-4 py-3 text-right">OPS</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-4 py-3 text-right">이닝</th>
+                      <th className="px-4 py-3 text-right">ERA</th>
+                      <th className="px-4 py-3 text-right">탈삼진</th>
+                      <th className="px-4 py-3 text-right">승리</th>
+                      <th className="px-4 py-3 text-right">WHIP</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {fullRows.map((player, index) => (
+                  <tr key={player.playerId} className="border-t border-white/8">
+                    <td className="px-4 py-4 font-semibold text-white">{index + 1}</td>
+                    <td className="px-4 py-4 font-medium text-white">{player.playerName}</td>
+                    <td className="px-4 py-4">{player.teamCode}</td>
+                    <td className="px-4 py-4 text-right">{player.games}</td>
+                    {playerGroup === "hitters" ? (
+                      <>
+                        <td className="px-4 py-4 text-right">{player.battingAvg?.toFixed(3) ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.hits ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.doubles ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.homeRuns ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.ops?.toFixed(3) ?? "-"}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-4 text-right">{player.innings?.toFixed(1) ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.era?.toFixed(2) ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.strikeouts ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.wins ?? "-"}</td>
+                        <td className="px-4 py-4 text-right">{player.whip?.toFixed(2) ?? "-"}</td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </section>
+  );
+}
+
+function App() {
+  const seasons = useMemo(() => [2026, 2025, 2024], []);
+  const [view, setView] = useState<AppView>("home");
+  const [season, setSeason] = useState<number>(getDefaultSeason(currentYear));
+
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.12),transparent_20%),linear-gradient(180deg,#020617_0%,#0f172a_46%,#020617_100%)] text-slate-50">
+      <section className="mx-auto flex max-w-[1500px] flex-col gap-6 px-4 py-5 sm:px-6 lg:flex-row lg:px-8 lg:py-8">
+        <Sidebar view={view} onChange={setView} />
+        <div className="min-w-0 flex-1">
+          <div className="mb-6 rounded-[28px] border border-white/8 bg-white/[0.03] px-5 py-4 text-sm leading-6 text-slate-300 shadow-[0_20px_80px_rgba(2,6,23,0.28)]">
+            <span className="font-semibold text-white">{season} 시즌</span> 기준 seeded preview 데이터입니다. 실제 KBO 실시간 순위 API가 아직 연결되지 않았기 때문에 화면 구조, 정렬, 필터, 정보 위계를 먼저 검증하는 단계입니다.
+          </div>
+          {view === "home" ? <HomeView season={season} onSeasonChange={setSeason} /> : <PlayersView season={season} onSeasonChange={setSeason} />}
         </div>
       </section>
     </main>
