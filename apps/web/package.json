@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.0.0",
@@ -15,6 +16,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",
     "@tailwindcss/vite": "^4.0.0",
+    "@playwright/test": "^1.54.2",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
