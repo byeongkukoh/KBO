@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kbo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kbo_record
+      POSTGRES_USER: kbo
+      POSTGRES_PASSWORD: kbo
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kbo -d kbo_record"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - kbo_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  kbo_postgres_data:
