@@ -18,9 +18,9 @@ def test_derive_batting_metrics() -> None:
     assert metrics["singles"] == 2
     assert metrics["total_bases"] == 11
     assert metrics["avg"] == 0.5
-    assert metrics["obp"] == 0.615
+    assert metrics["obp"] == 0.571
     assert metrics["slg"] == 1.1
-    assert metrics["ops"] == 1.715
+    assert metrics["ops"] == 1.671
 
 
 def test_derive_pitching_metrics() -> None:

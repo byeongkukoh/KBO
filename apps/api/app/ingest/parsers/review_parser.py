@@ -56,9 +56,9 @@ def _count_events(cells: list[str]) -> dict[str, int]:
             continue
         if "홈" in text:
             counts["home_runs"] += 1
-        elif "3" in text and ("안" in text or "루" in text):
+        elif text.endswith("3") or "3루" in text or ("3" in text and ("안" in text or "루" in text)):
             counts["triples"] += 1
-        elif "2" in text and ("안" in text or "루" in text):
+        elif text.endswith("2") or "2루" in text or ("2" in text and ("안" in text or "루" in text)):
             counts["doubles"] += 1
         if "4구" in text or "볼넷" in text:
             counts["walks"] += 1
