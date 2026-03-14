@@ -52,6 +52,7 @@ class LeaderboardPlayerResponse(BaseModel):
     hits: int | None
     doubles: int | None
     home_runs: int | None
+    stolen_bases: int | None
     ops: float | None
     era: float | None
     strikeouts: int | None

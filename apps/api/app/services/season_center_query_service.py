@@ -47,6 +47,7 @@ class LeaderboardPlayerSnapshot:
     hits: int | None
     doubles: int | None
     home_runs: int | None
+    stolen_bases: int | None
     ops: float | None
     era: float | None
     strikeouts: int | None
@@ -83,6 +84,7 @@ class _TeamAccumulator:
     sacrifice_flies: int = 0
     triples: int = 0
     home_runs: int = 0
+    stolen_bases: int = 0
     innings_outs: int = 0
     pitching_hits_allowed: int = 0
     pitching_walks_allowed: int = 0
@@ -102,6 +104,7 @@ class _PlayerBattingAccumulator:
     doubles: int = 0
     triples: int = 0
     home_runs: int = 0
+    stolen_bases: int = 0
     walks: int = 0
     hit_by_pitch: int = 0
     sacrifice_flies: int = 0
@@ -118,6 +121,7 @@ class _PlayerPitchingAccumulator:
     walks_allowed: int = 0
     strikeouts: int = 0
     earned_runs: int = 0
+    wins: int = 0
 
 
 def list_available_seasons(session: Session) -> list[int]:
@@ -204,6 +208,7 @@ def _accumulate_teams(games: list[Game]) -> dict[str, _TeamAccumulator]:
                 accumulator.sacrifice_flies += batting_row.sacrifice_flies
                 accumulator.triples += batting_row.triples
                 accumulator.home_runs += batting_row.home_runs
+                accumulator.stolen_bases += batting_row.stolen_bases
 
             for pitching_row in pitching_rows_by_team.get(team.id, []):
                 accumulator.innings_outs += pitching_row.innings_outs
@@ -269,7 +274,7 @@ def _build_standings(accumulators: dict[str, _TeamAccumulator]) -> list[TeamStan
                 slg=slg,
                 ops=ops,
                 home_runs=accumulator.home_runs,
-                stolen_bases=None,
+                stolen_bases=accumulator.stolen_bases,
                 era=era,
                 whip=whip,
                 last_ten=last_ten,
@@ -313,6 +318,7 @@ def _build_player_snapshots(games: list[Game], team_games_by_code: dict[str, int
             accumulator.doubles += row.doubles
             accumulator.triples += row.triples
             accumulator.home_runs += row.home_runs
+            accumulator.stolen_bases += row.stolen_bases
             accumulator.walks += row.walks
             accumulator.hit_by_pitch += row.hit_by_pitch
             accumulator.sacrifice_flies += row.sacrifice_flies
@@ -329,6 +335,8 @@ def _build_player_snapshots(games: list[Game], team_games_by_code: dict[str, int
             accumulator.walks_allowed += row.walks_allowed
             accumulator.strikeouts += row.strikeouts
             accumulator.earned_runs += row.earned_runs
+            if row.decision_code == "승":
+                accumulator.wins += 1
 
     snapshots: list[LeaderboardPlayerSnapshot] = []
 
@@ -356,6 +364,7 @@ def _build_player_snapshots(games: list[Game], team_games_by_code: dict[str, int
                 hits=accumulator.hits,
                 doubles=accumulator.doubles,
                 home_runs=accumulator.home_runs,
+                stolen_bases=accumulator.stolen_bases,
                 ops=ops,
                 era=None,
                 strikeouts=None,
@@ -384,10 +393,11 @@ def _build_player_snapshots(games: list[Game], team_games_by_code: dict[str, int
                 hits=None,
                 doubles=None,
                 home_runs=None,
+                stolen_bases=None,
                 ops=None,
                 era=safe_ratio(accumulator.earned_runs * 27, outs),
                 strikeouts=accumulator.strikeouts,
-                wins=None,
+                wins=accumulator.wins,
                 whip=safe_ratio(accumulator.hits_allowed + accumulator.walks_allowed, outs / 3 if outs > 0 else 0),
                 qualified_hitter=False,
                 qualified_pitcher=qualified_pitcher,
