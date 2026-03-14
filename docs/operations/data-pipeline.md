@@ -26,6 +26,8 @@
 
 초기 구현 전에는 `docs/operations/kbo-source-inventory.md` 를 기준으로 어떤 페이지가 실제로 MVP에 필요한 필드를 제공하는지 검증해야 한다.
 특히 `스코어보드` 는 정적 수집 우선 후보, `게임센터` 는 `ws/Main.asmx` + section별 partial HTML 구조를 검증해야 하는 동적 수집 대상이라는 구분을 명확히 유지한다.
+특히 `ReviewNew.aspx` 역시 내부적으로 `ws/Schedule.asmx` 호출에 의존하므로, partial HTML 자체와 그 뒤의 보조 요청 계층을 함께 고려해야 한다.
+또한 `robots.txt` 에서 `/ws/` 가 disallow 되어 있으므로, `ws/*` 는 기술적으로 응답이 확인되더라도 정책 검토 없이 기본 배치 경로로 고정하지 않는다.
 
 ## Failure Handling
 

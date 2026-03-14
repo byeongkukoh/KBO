@@ -56,6 +56,7 @@
 - `ScoreBoard` 리뷰 링크는 `/Schedule/GameCenter/Main.aspx?gameDate=...&gameId=...&section=REVIEW` 형식으로 연결된다.
 - `GameCenter` 는 메인 shell + `/ws/Main.asmx/GetKboGameDate`, `/ws/Main.asmx/GetKboGameList` + section별 HTML partial 로딩 구조를 사용한다.
 - 현재 확인된 `GameCenter` section 경로는 `Preview/StartPitcher.aspx`, `Preview/Team.aspx`, `Preview/LineUp.aspx`, `ReviewNew.aspx`, `KeyPlayerPitcher.aspx`, `KeyPlayerHitter.aspx`, `Highlight.aspx` 이다.
+- `ReviewNew.aspx` 는 다시 `/ws/Schedule.asmx/GetScoreBoardScroll`, `/ws/Schedule.asmx/GetBoxScoreScroll` 호출에 의존하고, 키플레이어/하이라이트도 `ws/Schedule.asmx` 보조 호출 흔적이 보인다.
 - `Player/Search` 는 선수 기본 프로필 필드를 제공한다.
 - `Player/Search` 는 `/ws/Controls.asmx/GetSearchPlayer` 응답의 `P_LINK` 를 통해 현역은 `/Record/Player/HitterDetail/Basic.aspx?playerId=...`, 은퇴 선수는 `/Record/Retire/Hitter.aspx?playerId=...` 로 연결된다.
 - 현역 선수 상세는 프로필 + `Basic`, `Total`, `Daily`, `Game`, `Situation`, `Award`, `SeasonReg` 탭 구조를 제공한다.
@@ -63,20 +64,23 @@
 - `Record` 계열 페이지는 시즌별 기록과 다양한 세부 필터를 제공한다.
 - PostgreSQL 초기 스키마는 경기/선수/팀/시즌 식별자와 시즌 기록, 경기 기록, source capture, sync log 중심으로 먼저 정리했다.
 - ingestion 경계는 MVP 단계에서 단일 앱을 우선하고, source collection 과 batch orchestration 책임을 문서상 분리했다.
+- `robots.txt` 는 `/ws/` 경로를 disallow 하고, `ScoreBoard` 의 문자중계 버튼은 로그인 경고로 연결된다.
+- 따라서 현재 기준으로 공개적으로 검증된 경기 상세 원천은 박스스코어/리뷰/키플레이어/하이라이트 계층까지이며, 로그인 없이 접근 가능한 play-by-play 텍스트 이벤트 로그는 아직 확인하지 못했다.
 
 아직 구현 전 검증이 더 필요한 부분:
 
 - play-by-play 수준의 `GameCenter` raw 이벤트 로그 요청 구조
+- `ws/*` 경로를 정책상 어느 범위까지 배치 수집 기본 경로로 사용할 수 있는지
 - 현역 투수/은퇴 투수 상세 페이지가 타자 상세와 동일한 수준으로 수집 가능한지 여부
 - 리그 평균 및 구장 보정 데이터 확보 방식
 - 실제 요청 제한과 안정적인 배치 수집 범위
 
 ## Recommended Next Tasks
 
-1. `GameCenter` 의 play-by-play 수준 raw 이벤트 로그 경로와 안정적인 배치 수집 범위를 추가 검증한다.
-2. 현역 투수/은퇴 투수 상세 페이지의 필드 및 탭 구조를 타자 상세와 동일 기준으로 확인한다.
-3. `postgresql-schema-outline.md` 를 기준으로 실제 테이블 구현 우선순위와 적재 순서를 확정한다.
-4. MVP ingestion 앱 이름을 `apps/scraper` 와 `apps/worker` 중 어느 쪽으로 둘지 결정한다.
+1. `ws/*` 경로 정책과 공개 HTML 경로만으로 가능한 수집 범위를 나눠서 MVP 배치 기준을 확정한다.
+2. `GameCenter` 의 play-by-play 수준 raw 이벤트 로그 경로를 추가 검증한다.
+3. 현역 투수/은퇴 투수 상세 페이지의 필드 및 탭 구조를 타자 상세와 동일 기준으로 확인한다.
+4. `postgresql-schema-outline.md` 를 기준으로 실제 테이블 구현 우선순위와 적재 순서를 확정한다.
 
 ## Working Rule For Future Sessions
 

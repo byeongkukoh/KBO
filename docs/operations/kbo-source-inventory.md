@@ -68,6 +68,10 @@ KBO 공식 홈페이지에서 어떤 페이지와 데이터 조합을 우선 수
 
 이로써 게임센터 상세는 단일 JSON API보다는 `ws/Main.asmx` 기반 메타데이터 조회 + section별 HTML partial 로딩 구조에 가깝다는 점까지는 확인되었다. 다만 실제 play-by-play 수준의 raw 이벤트가 어떤 경로로 제공되는지는 아직 확정하지 못했다.
 
+추가 확인 결과 `ReviewNew.aspx` 자체도 정적 HTML만으로 완결되지 않고 `/ws/Schedule.asmx/GetScoreBoardScroll`, `/ws/Schedule.asmx/GetBoxScoreScroll` 호출을 통해 박스스코어와 상세 기록 테이블을 채운다. `KeyPlayerPitcher.aspx`, `KeyPlayerHitter.aspx`, `Highlight.aspx` 역시 각각 `GetKeyPlayerPitcher`, `GetKeyPlayerHitter`, `GetHighLight` 호출 흔적이 확인된다.
+
+반면 현재 직접 확인한 범위에서는 `문자중계` 버튼이 로그인 경고로 연결되고, `GameCenter` 메인/리뷰/하이라이트/키플레이어 partial 어디에서도 로그인 없이 접근 가능한 텍스트형 play-by-play 이벤트 로그 경로는 드러나지 않았다. 즉 공개적으로 검증된 것은 박스스코어/키플레이어/하이라이트/리뷰 계층까지이며, pitch-by-pitch 또는 문자중계 수준 raw 이벤트는 여전히 미확인 상태다.
+
 ### Player Statistics Pages
 
 - 타자 시즌 기록 페이지
@@ -203,13 +207,17 @@ KBO 공식 홈페이지에서 어떤 페이지와 데이터 조합을 우선 수
 - 수집 대상 페이지별로 rate limit, 재시도, 실패 로깅 정책을 분리한다.
 - `Schedule/ScoreBoard.aspx` 처럼 정적 HTML에서 핵심 필드가 보이는 페이지와 `GameCenter/Main.aspx` 처럼 동적 접근 가능성이 높은 페이지를 분리해 설계한다.
 - `GameCenter/Main.aspx` 는 메타데이터를 `ws/Main.asmx` 로 받고, 상세는 section별 HTML partial 로드가 섞여 있으므로 JSON endpoint만 찾는 방식으로 단순화하지 않는다.
+- `ReviewNew.aspx` 같은 partial 도 내부적으로 `ws/Schedule.asmx` 호출에 의존하므로, HTML partial 1회 fetch만으로 상세 기록이 완성된다고 가정하지 않는다.
 - `Player/Search.aspx` 는 검색 목록 자체와 상세 진입 링크를 함께 제공하므로, 선수 식별자 확보 단계와 상세 수집 단계를 분리해서 설계한다.
 - KBO 공식 사이트는 ASP.NET `__doPostBack` 기반 네비게이션이 섞여 있으므로, 페이지 전환/정렬/페이징 수집에서는 단순 링크 파싱만으로 충분하지 않을 수 있다.
 - 현재 확인된 범위에서는 공식 API가 보이지 않으므로, 기본 전략은 HTML 스크래핑이다.
+- 다만 `robots.txt` 에서 `/ws/` 경로가 명시적으로 disallow 되어 있으므로, 기술적으로 응답이 오더라도 `ws/*` 호출은 기본 배치 수집 경로로 바로 고정하지 말고 정책 검토와 fallback 경로를 함께 문서화한다.
+- 샘플 검증 기준 `GetKboGameDate`, `GetKboGameList` 는 2022-2026 시즌 날짜들에서 응답이 확인되었지만, 이는 기술적 접근 가능성 확인일 뿐 안정적 장기 배치 수집 허용을 의미하지 않는다.
 
 ## Open Questions
 
 - KBO 공식 홈페이지에서 play-by-play 수준의 raw 이벤트 로그를 어떤 요청 구조로 제공하는가?
+- `/ws/` 경로가 robots disallow 인 상황에서 GameCenter/Review 계층을 어떤 범위까지 배치 수집 기본 경로로 허용할 것인가?
 - 현역 투수 상세와 은퇴 투수 상세가 타자 상세와 동일한 수준의 필드/탭 구조를 안정적으로 제공하는가?
 - 고급 지표 계산에 필요한 리그 평균과 구장 보정 데이터를 공식 페이지만으로 확보할 수 있는가?
 - robots.txt 와 실제 요청 제한 정책 기준에서 어떤 페이지군까지 안정적으로 배치 수집 가능한가?
@@ -219,3 +227,4 @@ KBO 공식 홈페이지에서 어떤 페이지와 데이터 조합을 우선 수
 - 선수 이동 이력은 `선수 이동 현황` 페이지 기준으로 우선 확보하고, 커리어 전체 이력 완성도가 부족하면 MVP에서는 이동 이벤트 중심으로 제공한다.
 - 리그 평균 또는 구장 보정 데이터가 부족하면, Tier 2 이상 고급 지표는 MVP 전면 제공 대상에서 제외하고 단계적 공개로 전환한다.
 - 게임센터 이벤트 로그 접근이 제한적이면, 경기 상세 화면은 회차별 점수와 박스 스코어 중심으로 먼저 출시한다.
+- `ws/*` 경로 정책이 불명확하면 MVP 배치는 `ScoreBoard` 기반 경기 식별자 수집과 공개 상세 페이지 중심으로 먼저 설계하고, `ws/*` 의존 수집은 보조 경로 또는 추가 검토 대상으로 유지한다.
