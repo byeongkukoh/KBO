@@ -13,6 +13,7 @@
 - Frontend는 사용자 탐색 경험과 화면 렌더링을 담당한다.
 - API는 시즌 기록, 팀 기록, 선수 기록, 경기 기록 조회를 위한 데이터 제공 계층을 담당한다.
 - API는 선수 프로필, 팀 이력, 시즌별 커리어 기록, 고급 지표 응답을 함께 제공할 수 있어야 한다.
+- MVP 단계에서는 KBO 원천 수집, 정제, 적재를 하나의 ingestion 앱 경계에서 먼저 구현하고, 책임은 내부 모듈 수준에서 source collection 과 batch orchestration 으로 나눈다.
 - 향후 Scraper/Worker는 외부 소스 수집과 배치 처리 책임을 분리해 독립 프로젝트로 추가할 수 있다.
 - 예측 모델 기능은 MVP 범위 밖이므로 추후 별도 서비스 또는 별도 모듈로 확장할 수 있다.
 
@@ -24,7 +25,8 @@
 
 ## Future Extension Points
 
-- `apps/scraper` 또는 `apps/worker`: 스크래핑과 배치 작업 전용 프로젝트
+- MVP 우선 방향: 단일 ingestion 앱(`apps/worker` 또는 `apps/scraper`)에서 스크래핑과 일일 적재를 함께 수행
+- 확장 방향: 필요 시 `apps/scraper` 와 `apps/worker` 로 분리해 source fetching 과 orchestration 책임을 나눈다.
 - `packages/shared` 같은 공통 모듈: 타입, 유틸리티, 공통 스키마 공유
 - 예측 모델 파이프라인: 축적된 기록 데이터를 활용한 순위 예측 기능
 - 운영 모니터링 영역: 수집 성공 여부, 데이터 최신성, 오류 알림 체계
