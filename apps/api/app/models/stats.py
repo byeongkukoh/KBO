@@ -38,6 +38,7 @@ class PlayerGameBattingStat(Base):
     doubles: Mapped[int] = mapped_column(Integer, nullable=False)
     triples: Mapped[int] = mapped_column(Integer, nullable=False)
     home_runs: Mapped[int] = mapped_column(Integer, nullable=False)
+    stolen_bases: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     runs_batted_in: Mapped[int] = mapped_column(Integer, nullable=False)
     walks: Mapped[int] = mapped_column(Integer, nullable=False)
     hit_by_pitch: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -67,6 +68,7 @@ class PlayerGamePitchingStat(Base):
     strikeouts: Mapped[int] = mapped_column(Integer, nullable=False)
     runs_allowed: Mapped[int] = mapped_column(Integer, nullable=False)
     earned_runs: Mapped[int] = mapped_column(Integer, nullable=False)
+    decision_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
 
     game = relationship("Game", back_populates="player_pitching_stats")
     team = relationship("Team")

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 from typing import Any
 
 from app.ingest.parsers.common import build_player_key, parse_innings_to_outs, parse_table_json, to_int
@@ -18,6 +19,7 @@ class PlayerBattingParsed:
     doubles: int
     triples: int
     home_runs: int
+    stolen_bases: int
     runs_batted_in: int
     walks: int
     hit_by_pitch: int
@@ -40,6 +42,7 @@ class PlayerPitchingParsed:
     strikeouts: int
     runs_allowed: int
     earned_runs: int
+    decision_code: str | None
 
 
 @dataclass(slots=True)
@@ -71,9 +74,37 @@ def _count_events(cells: list[str]) -> dict[str, int]:
     return counts
 
 
+def _parse_table_etc(raw: str) -> dict[str, str]:
+    if not raw:
+        return {}
+    table = parse_table_json(raw)
+    parsed: dict[str, str] = {}
+    for row in table.get("rows", []):
+        cells = row.get("row", [])
+        if len(cells) < 2:
+            continue
+        key = str(cells[0].get("Text", "")).strip()
+        value = str(cells[1].get("Text", "")).strip()
+        if key:
+            parsed[key] = value
+    return parsed
+
+
+def _extract_named_event_counts(raw_text: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    if not raw_text:
+        return counts
+    for name in re.findall(r"([가-힣A-Za-z]+)\([^)]*\)", raw_text):
+        cleaned = name.strip()
+        counts[cleaned] = counts.get(cleaned, 0) + 1
+    return counts
+
+
 def parse_boxscore_payload(payload: dict[str, Any], away_team_code: str, home_team_code: str) -> ReviewParsed:
     batting_rows: list[PlayerBattingParsed] = []
     pitching_rows: list[PlayerPitchingParsed] = []
+    table_etc = _parse_table_etc(str(payload.get("tableEtc", "")))
+    stolen_base_counts = _extract_named_event_counts(table_etc.get("도루", ""))
 
     for idx, team_code in enumerate([away_team_code, home_team_code]):
         batter_identity = parse_table_json(payload["arrHitter"][idx]["table1"])
@@ -102,6 +133,7 @@ def parse_boxscore_payload(payload: dict[str, Any], away_team_code: str, home_te
                     doubles=event_counts["doubles"],
                     triples=event_counts["triples"],
                     home_runs=event_counts["home_runs"],
+                    stolen_bases=stolen_base_counts.get(player_name, 0),
                     walks=event_counts["walks"],
                     hit_by_pitch=event_counts["hbp"],
                     sacrifice_flies=event_counts["sf"],
@@ -128,6 +160,7 @@ def parse_boxscore_payload(payload: dict[str, Any], away_team_code: str, home_te
                     strikeouts=to_int(cells[13]["Text"]),
                     runs_allowed=to_int(cells[14]["Text"]),
                     earned_runs=to_int(cells[15]["Text"]),
+                    decision_code=(str(cells[2]["Text"]).strip() or None),
                 )
             )
 

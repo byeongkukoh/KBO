@@ -149,6 +149,7 @@ def ingest_single_game(
                     doubles=row.doubles,
                     triples=row.triples,
                     home_runs=row.home_runs,
+                    stolen_bases=row.stolen_bases,
                     runs_batted_in=row.runs_batted_in,
                     walks=row.walks,
                     hit_by_pitch=row.hit_by_pitch,
@@ -174,6 +175,7 @@ def ingest_single_game(
                     strikeouts=row.strikeouts,
                     runs_allowed=row.runs_allowed,
                     earned_runs=row.earned_runs,
+                    decision_code=row.decision_code,
                 )
             )
 
@@ -282,6 +284,7 @@ def _merge_batting_rows(rows: list[PlayerBattingParsed]) -> list[PlayerBattingPa
             doubles=existing.doubles + row.doubles,
             triples=existing.triples + row.triples,
             home_runs=existing.home_runs + row.home_runs,
+            stolen_bases=existing.stolen_bases + row.stolen_bases,
             runs_batted_in=existing.runs_batted_in + row.runs_batted_in,
             walks=existing.walks + row.walks,
             hit_by_pitch=existing.hit_by_pitch + row.hit_by_pitch,
@@ -313,5 +316,6 @@ def _merge_pitching_rows(rows: list[PlayerPitchingParsed]) -> list[PlayerPitchin
             strikeouts=existing.strikeouts + row.strikeouts,
             runs_allowed=existing.runs_allowed + row.runs_allowed,
             earned_runs=existing.earned_runs + row.earned_runs,
+            decision_code=existing.decision_code or row.decision_code,
         )
     return list(merged.values())
