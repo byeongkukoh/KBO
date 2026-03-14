@@ -250,3 +250,14 @@ def test_get_season_snapshot(client) -> None:
 def test_missing_season_returns_not_found(client) -> None:
     response = client.get("/api/seasons/1999/snapshot")
     assert response.status_code == 404
+
+
+def test_get_season_snapshot_with_series_code_filter(client) -> None:
+    _seed_season_center_data()
+
+    response = client.get("/api/seasons/2026/snapshot", params={"series_code": "regular"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["season"] == 2026
+    assert data["snapshot_label"].endswith("regular db snapshot")
