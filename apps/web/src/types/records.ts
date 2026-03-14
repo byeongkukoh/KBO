@@ -3,6 +3,8 @@ export type AppView = "home" | "players";
 export type TeamStanding = {
   teamCode: string;
   teamName: string;
+  rank: number;
+  games: number;
   wins: number;
   losses: number;
   draws: number;
@@ -36,6 +38,7 @@ export type LeaderboardPlayer = {
   hits?: number;
   doubles?: number;
   homeRuns?: number;
+  stolenBases?: number;
   ops?: number;
   era?: number;
   strikeouts?: number;
@@ -60,3 +63,5 @@ export type SeasonSnapshot = {
   standings: TeamStanding[];
   players: LeaderboardPlayer[];
 };
+
+export type SeriesCode = "preseason" | "regular" | "postseason";

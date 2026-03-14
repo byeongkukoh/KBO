@@ -1,25 +1,9 @@
-import { leaderboardCategories, seededSeasons } from "../data/seededRecords";
-import type { LeaderboardCategory, LeaderboardPlayer, SeasonSnapshot, TeamStanding } from "../types/records";
+import { leaderboardCategories } from "../data/seededRecords";
+import type { LeaderboardCategory, LeaderboardPlayer, TeamStanding } from "../types/records";
 
 export type TeamSortKey = "winPct" | "hits" | "doubles" | "battingAvg" | "ops" | "era";
 export type PlayerGroup = "hitters" | "pitchers";
 export type FullViewMode = "top5" | "full";
-
-export function getAvailableSeasons(): number[] {
-  return seededSeasons.map((season) => season.season).sort((a, b) => b - a);
-}
-
-export function getDefaultSeason(currentYear: number): number {
-  const seasons = getAvailableSeasons();
-  if (seasons.includes(currentYear)) {
-    return currentYear;
-  }
-  return seasons[0];
-}
-
-export function getSeasonSnapshot(season: number): SeasonSnapshot {
-  return seededSeasons.find((item) => item.season === season) ?? seededSeasons[0];
-}
 
 export function sortStandings(rows: TeamStanding[], sortKey: TeamSortKey): TeamStanding[] {
   const sorted = [...rows].sort((left, right) => {
