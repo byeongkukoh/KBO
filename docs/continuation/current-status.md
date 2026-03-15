@@ -14,6 +14,7 @@
 - `apps/api` 에 시즌 센터용 read API가 추가되어 기존 game-level 테이블에서 시즌별 팀 순위/팀 통계/선수 리더보드를 DB 집계로 조회할 수 있다.
 - 2025 실제 시즌 데이터가 PostgreSQL 에 적재되어 `preseason`, `regular`, `postseason` 기준으로 분리 조회가 가능하다.
 - `apps/web` 시즌 센터 프론트엔드가 실제 `GET /api/seasons` / `GET /api/seasons/{season}/snapshot` API를 사용하도록 전환되어 팀 순위, 팀 통계, 선수 Top 5, 전체 선수 기록 화면을 DB snapshot 기준으로 조회한다.
+- 시즌 센터 프론트/백엔드 구조를 기능 단위 모듈로 분리해 유지보수성을 개선했다.
 
 ## Completed Planning Work
 
@@ -39,6 +40,11 @@
 - 시즌 센터 필드 확장 완료
   - player game batting stats 에 `stolen_bases`, player game pitching stats 에 `decision_code` 저장
   - 시즌 snapshot 에서 팀 `stolen_bases`, 투수 `wins`, 타자 `stolen_bases` 집계 가능
+- 시즌 센터 계산 및 구조 개선 완료
+  - `games_back` 를 표준 경기차 식으로 수정
+  - `parse_innings_to_outs` 가 `5.1`, `5.2` 같은 야구 이닝 표기를 올바르게 해석하도록 수정
+  - 시즌 센터 백엔드를 standings/player records 모듈로 분리하고 전체 기록용 pagination API `GET /api/seasons/{season}/player-records` 추가
+  - 프론트를 season-center feature 폴더와 view/component 단위로 분리하고, 전체 타자/투수 기록을 페이지네이션으로 조회하도록 확장
 - 2025 실제 시즌 적재 완료
   - `python -m app.ingest.cli ingest-season --season 2025 --series-group preseason --series-group regular --series-group postseason --use-live --start-date 2025-03-01 --end-date 2025-10-31` 실행
   - 적재 결과: preseason 42경기, regular 720경기, postseason 16경기, 총 778경기 성공
@@ -47,6 +53,7 @@
   - `apps/web/src/App.tsx` 에서 시즌 목록과 시즌 snapshot 을 비동기 fetch 하도록 전환
   - `apps/web/src/lib/api.ts` 에 season API adapter 추가
   - Playwright smoke 테스트를 실제 `/api/seasons*` 요청 interception 기준으로 갱신
+  - 전체 보기 화면은 `/api/seasons/{season}/player-records` 를 통해 hitter/pitcher 별 페이지네이션 조회를 수행
 
 ## Verified Decisions
 
@@ -86,6 +93,7 @@
 - `Record` 계열 페이지는 시즌별 기록과 다양한 세부 필터를 제공한다.
 - 현재 프론트 standings/player records 화면은 실제 백엔드 season snapshot API를 기준으로 동작한다.
 - 시즌 센터 백엔드는 현재 DB-backed snapshot 응답에서 팀 `stolen_bases`, 투수 `wins`, 타자 `stolen_bases` 를 실제 집계로 반환한다.
+- 시즌 센터 백엔드는 현재 DB-backed snapshot/records 응답에서 `Games Back`, `WHIP`, `stolen_bases`, 투수 `wins` 를 실제 적재 데이터 기준으로 계산한다.
 - 2025 실제 시즌 적재는 현재 관측된 `ws` game list / scoreboard / boxscore 응답을 사용한 live path 로 수행되며, public HTML inventory 기반 전환은 후속 과제로 남아 있다.
 - PostgreSQL 초기 스키마는 경기/선수/팀/시즌 식별자와 시즌 기록, 경기 기록, source capture, sync log 중심으로 먼저 정리했다.
 - ingestion 경계는 MVP 단계에서 단일 앱을 우선하고, source collection 과 batch orchestration 책임을 문서상 분리했다.
@@ -104,7 +112,7 @@
 
 1. 2025 시즌 적재 inventory 를 public `Schedule/ScoreBoard` HTML 기준으로 전환할지 검토한다.
 2. 로컬 conda 환경에서 ingest CLI와 FastAPI 실행 절차를 문서화한다.
-3. season snapshot API를 standings/team-stats/leaderboards 세분화 endpoint로 분리할지 결정한다.
+3. season snapshot/player-records API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
 4. 선수 식별자(`player_id`) 안정 연결 경로를 확보해 `player_key` 임시 정책을 고도화한다.
 
 ## Working Rule For Future Sessions
