@@ -47,10 +47,17 @@ AI는 항상 다음 우선순위를 따른다.
 
 ## How To Work In This Repo
 
+### Session Start Protocol
+
+- 새 세션이나 다른 컴퓨터에서 작업을 시작하면 항상 `AGENTS.md` 를 먼저 읽는다.
+- 그다음 반드시 `docs/continuation/startup-checklist.md` 와 `docs/continuation/current-status.md` 를 읽는다.
+- 이 순서를 건너뛰고 바로 코드부터 보지 않는다.
+- 저장소 상태를 복원해야 하는 세션이면 `startup-checklist.md` 의 환경 확인 절차까지 함께 따른다.
+
 ### Before Changing Code
 
 - 먼저 관련 문서를 읽는다.
-- 새 세션이거나 다른 환경에서 이어받은 작업이면 `docs/continuation/current-status.md` 를 먼저 읽는다.
+- 새 세션이거나 다른 환경에서 이어받은 작업이면 `docs/continuation/startup-checklist.md` 와 `docs/continuation/current-status.md` 를 먼저 읽는다.
 - 해당 작업이 MVP 범위인지 확인한다.
 - 데이터 구조를 바꾸는 작업이면 `docs/data/` 와 `docs/operations/` 부터 확인한다.
 - 화면 구조를 바꾸는 작업이면 `docs/product/` 를 먼저 확인한다.
@@ -105,6 +112,7 @@ AI는 항상 다음 우선순위를 따른다.
 - 구현보다 앞서 문서가 필요한 작업이면 문서부터 갱신한다.
 - 스크래핑 관련 변경은 원천 페이지, 식별자, 중복 방지, 실패 처리까지 함께 검토한다.
 - 의미 있는 작업이 끝나면 `docs/continuation/current-status.md` 를 함께 갱신해 다음 세션이 바로 이어질 수 있게 한다.
+- 다른 컴퓨터에서 이어받을 가능성이 있으면 `current-status.md` 만이 아니라 `startup-checklist.md` 기준으로 환경 복원 정보도 함께 유지한다.
 
 ## Common Pitfalls
 
@@ -117,6 +125,7 @@ AI는 항상 다음 우선순위를 따른다.
 ## Next Useful Reads
 
 - `RULES.md`
+- `docs/continuation/startup-checklist.md`
 - `docs/continuation/current-status.md`
 - `docs/README.md`
 - `docs/product/service-overview.md`

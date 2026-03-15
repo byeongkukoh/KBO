@@ -4,6 +4,8 @@
 
 이 문서는 다른 컴퓨터나 새 세션에서 작업을 이어갈 때 가장 먼저 읽는 handoff 문서다. 현재까지 확정된 내용, 최근 완료 작업, 다음 우선순위 작업을 짧게 유지한다.
 
+세션 시작 절차와 환경 확인 순서는 `docs/continuation/startup-checklist.md` 를 기준으로 한다.
+
 ## Current Snapshot
 
 - 저장소 구조는 monorepo 기준으로 `apps/web`, `apps/api`, `docs/` 로 정리되어 있다.
