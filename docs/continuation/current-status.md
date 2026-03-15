@@ -20,6 +20,7 @@
 - 시즌 센터와 선수 상세에 sabermetrics v1 지표가 추가되어 저위험 파생 지표를 실제 2025 시즌 데이터 기준으로 확인할 수 있다.
 - 팀 상세 페이지와 경기 목록/상세 화면이 season center 흐름에 연결되었다.
 - league baseline/상수 계층을 확장해 Tier 2 지표 일부(`wOBA`, `wRC`, `wRC+`, `FIP`)를 실제 API 응답에 포함하기 시작했다.
+- season/team/game/player 응답에 freshness 메타데이터가 추가되어 마지막 적재 시점과 컨텍스트 갱신 시점을 함께 노출한다.
 
 ## Completed Planning Work
 
@@ -64,6 +65,10 @@
   - `GET /api/teams/{team_code}/season-detail` 추가
   - `GET /api/games` 목록 API 추가
   - 프론트에서 팀 상세 화면, 경기 목록 화면, 경기 상세 화면을 season center path에 연결
+- 서비스 hardening 1차 구현 완료
+  - `/api/games` 는 SQL-side filter/pagination 으로 전환
+  - season snapshot / player-records / player-detail / team-detail / game-list / game-detail 에 freshness 응답 추가
+  - 프론트 shell 이 freshness 정보를 보여주도록 갱신
 - 리그 baseline/상수 1차 구현 완료
   - `league_season_batting_contexts`, `league_season_pitching_contexts`, `advanced_metric_constants` 테이블 추가
   - `python -m app.ingest.cli refresh-league-context --season 2025 --series-code regular` 지원
@@ -126,6 +131,7 @@
 - 시즌 센터 백엔드는 현재 DB-backed snapshot/records/detail 응답에서 Tier 2 1차(`wOBA`, `wRC`, `wRC+`, `FIP`)를 provisional constants 기반으로 계산한다.
 - 팀 상세는 현재 시즌 누적 기록, 최근 경기, `OPS+`, `ERA+` 를 제공한다.
 - 경기 목록/상세는 현재 완료 경기 중심 탐색만 지원하며, raw play-by-play는 아직 제공하지 않는다.
+- 현재 서비스는 최신성 메타데이터를 함께 보여주지만, 캐시/경량 materialization 없이 request-time 집계 비중이 여전히 남아 있다.
 - 현재 player detail 페이지는 문서상의 장기 목표인 커리어 전체 타임라인 대신, 2025 실제 시즌 기준 요약 + 게임 로그 중심으로 먼저 제공한다.
 - player detail 은 현재 적재된 시즌 범위 안에서 커리어 시즌 요약을 보여주며, 현재 데이터셋 기준으로는 2025 시즌이 중심이다.
 - 2025 실제 시즌 적재는 현재 관측된 `ws` game list / scoreboard / boxscore 응답을 사용한 live path 로 수행되며, public HTML inventory 기반 전환은 후속 과제로 남아 있다.
@@ -151,6 +157,7 @@
 3. `IBB`, pitcher `HBP` 를 더 정확히 확보할 수 있는 source path를 확인해 Tier 2 지표 정확도를 높인다.
 4. park factor / 리그별 weight 정책을 정해 `OPS+`, `ERA+`, `wRC+` 를 KBO 전용 기준으로 고도화한다.
 5. season snapshot/player-records/player-detail/team-detail/game-list API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
+6. 팀 상세와 시즌 센터에서 in-memory season aggregation 을 더 SQL/summary 친화적으로 줄일지 검토한다.
 
 ## Working Rule For Future Sessions
 
