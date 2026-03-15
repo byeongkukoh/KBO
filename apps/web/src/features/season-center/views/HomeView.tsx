@@ -14,9 +14,9 @@ const teamSortOptions: Array<{ key: TeamSortKey; label: string }> = [
   { key: "era", label: "평균자책점" },
 ];
 
-export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeriesChange, snapshot, onSelectTeam }: { season: number; seasons: number[]; seriesCode: SeriesCode; onSeasonChange: (season: number) => void; onSeriesChange: (series: SeriesCode) => void; snapshot: SeasonSnapshot; onSelectTeam: (teamCode: string) => void }) {
+export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeriesChange, snapshot, onSelectTeam, emptyMessage }: { season: number; seasons: number[]; seriesCode: SeriesCode; onSeasonChange: (season: number) => void; onSeriesChange: (series: SeriesCode) => void; snapshot: SeasonSnapshot | null; onSelectTeam: (teamCode: string) => void; emptyMessage?: string | null }) {
   const [sortKey, setSortKey] = useState<TeamSortKey>("winPct");
-  const sortedStandings = useMemo(() => sortStandings(snapshot.standings, sortKey), [snapshot.standings, sortKey]);
+  const sortedStandings = useMemo(() => sortStandings(snapshot?.standings ?? [], sortKey), [snapshot?.standings, sortKey]);
   const podium = sortedStandings.slice(0, 3);
 
   return (
@@ -31,10 +31,15 @@ export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeries
           <div className="flex flex-wrap items-center gap-3">
             <SeasonSelect seasons={seasons} value={season} onChange={onSeasonChange} />
             <SeriesSelect value={seriesCode} onChange={onSeriesChange} />
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">{snapshot.snapshotLabel}</div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">{snapshot?.snapshotLabel ?? "데이터 없음"}</div>
           </div>
         </div>
 
+        {emptyMessage ? (
+          <div className="rounded-[24px] border border-dashed border-white/15 bg-slate-950/35 px-6 py-8 text-sm text-slate-300">
+            {emptyMessage}
+          </div>
+        ) : (
         <div className="grid gap-4 lg:grid-cols-3">
           {podium.map((team, index) => (
             <article key={team.teamCode} className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5 backdrop-blur">
@@ -57,6 +62,7 @@ export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeries
             </article>
           ))}
         </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
@@ -73,7 +79,7 @@ export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeries
             ))}
           </div>
         </div>
-        <div className="overflow-x-auto">
+        {!emptyMessage ? <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-slate-200">
             <thead className="bg-white/6 text-xs uppercase tracking-[0.18em] text-slate-400">
               <tr>
@@ -106,7 +112,7 @@ export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeries
               ))}
             </tbody>
           </table>
-        </div>
+        </div> : <div className="px-5 py-8 text-sm text-slate-400">다른 시즌 또는 시리즈를 선택해보세요.</div>}
       </div>
     </section>
   );

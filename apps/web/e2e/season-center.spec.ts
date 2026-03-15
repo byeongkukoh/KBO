@@ -8,7 +8,7 @@ const freshness = {
 
 test("renders db-backed standings and player records", async ({ page }) => {
   await page.route("http://127.0.0.1:8000/api/seasons", async (route) => {
-    await route.fulfill({ json: { seasons: [2025] } });
+    await route.fulfill({ json: { seasons: [2026, 2025] } });
   });
 
   await page.route("http://127.0.0.1:8000/api/seasons/2025/snapshot?series_code=regular", async (route) => {
@@ -135,6 +135,10 @@ test("renders db-backed standings and player records", async ({ page }) => {
         ],
       },
     });
+  });
+
+  await page.route("http://127.0.0.1:8000/api/seasons/2026/snapshot?series_code=regular", async (route) => {
+    await route.fulfill({ status: 404, body: '{"detail":"season not found"}', contentType: "application/json" });
   });
 
   await page.route("http://127.0.0.1:8000/api/teams/LG/season-detail?season=2025&series_code=regular", async (route) => {
@@ -481,4 +485,9 @@ test("renders db-backed standings and player records", async ({ page }) => {
   await expect(page.getByText("Games / Browse")).toBeVisible();
   await page.getByRole("button", { name: "3-5" }).click();
   await expect(page.getByText("Games / Detail")).toBeVisible();
+
+  await page.getByRole("button", { name: "홈" }).click();
+  await page.selectOption("select", "2026");
+  await expect(page.getByText("선택한 시즌 또는 시리즈에는 아직 표시할 데이터가 없습니다.")).toBeVisible();
+  await expect(page.getByText("다른 시즌 또는 시리즈를 선택해보세요.")).toBeVisible();
 });

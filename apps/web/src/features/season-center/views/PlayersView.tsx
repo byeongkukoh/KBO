@@ -14,7 +14,8 @@ type PlayersViewProps = {
   seriesCode: SeriesCode;
   onSeasonChange: (season: number) => void;
   onSeriesChange: (series: SeriesCode) => void;
-  snapshot: SeasonSnapshot;
+  snapshot: SeasonSnapshot | null;
+  emptyMessage?: string | null;
   mode: FullViewMode;
   onModeChange: (mode: FullViewMode) => void;
   qualifiedHittersOnly: boolean;
@@ -39,6 +40,7 @@ export function PlayersView({
   onSeasonChange,
   onSeriesChange,
   snapshot,
+  emptyMessage,
   mode,
   onModeChange,
   qualifiedHittersOnly,
@@ -115,22 +117,22 @@ export function PlayersView({
       hitterCategories.map((category) => ({
         category,
         rows: sortPlayers(
-          snapshot.players.filter((player) => player.battingAvg !== undefined).filter((player) => (qualifiedHittersOnly ? player.qualifiedHitter : true)),
+          (snapshot?.players ?? []).filter((player) => player.battingAvg !== undefined).filter((player) => (qualifiedHittersOnly ? player.qualifiedHitter : true)),
           category,
         ).slice(0, 5),
       })),
-    [hitterCategories, qualifiedHittersOnly, snapshot.players],
+    [hitterCategories, qualifiedHittersOnly, snapshot?.players],
   );
   const topPitchers = useMemo(
     () =>
       pitcherCategories.map((category) => ({
         category,
         rows: sortPlayers(
-          snapshot.players.filter((player) => player.era !== undefined).filter((player) => (qualifiedPitchersOnly ? player.qualifiedPitcher : true)),
+          (snapshot?.players ?? []).filter((player) => player.era !== undefined).filter((player) => (qualifiedPitchersOnly ? player.qualifiedPitcher : true)),
           category,
         ).slice(0, 5),
       })),
-    [pitcherCategories, qualifiedPitchersOnly, snapshot.players],
+    [pitcherCategories, qualifiedPitchersOnly, snapshot?.players],
   );
 
   async function handlePageChange(nextPage: number) {
@@ -152,12 +154,16 @@ export function PlayersView({
             <button type="button" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:border-white/20 hover:bg-white/8" onClick={() => onModeChange(mode === "top5" ? "full" : "top5")}>
               {mode === "top5" ? "전체 보기" : "Top 5 보기"}
             </button>
-            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">{recordsPage?.snapshotLabel ?? snapshot.snapshotLabel}</div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">{recordsPage?.snapshotLabel ?? snapshot?.snapshotLabel ?? "데이터 없음"}</div>
           </div>
         </div>
       </div>
 
-      {mode === "top5" ? (
+      {emptyMessage ? (
+        <div className="rounded-[24px] border border-dashed border-white/15 bg-slate-950/35 px-6 py-8 text-sm text-slate-300">
+          {emptyMessage}
+        </div>
+      ) : mode === "top5" ? (
         <div className="space-y-8">
           <section>
             <div className="mb-4 flex items-center justify-between gap-4">

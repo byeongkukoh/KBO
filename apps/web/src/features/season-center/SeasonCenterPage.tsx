@@ -53,6 +53,7 @@ export function SeasonCenterPage() {
   const [gameDetail, setGameDetail] = useState<GameDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
 
   const activeFreshness = snapshot?.freshness ?? playerDetail?.freshness ?? teamDetail?.freshness ?? gamesPage?.freshness ?? gameDetail?.freshness;
 
@@ -79,6 +80,7 @@ export function SeasonCenterPage() {
     async function loadSeasons() {
       setIsLoading(true);
       setError(null);
+      setEmptyMessage(null);
       try {
         const nextSeasons = await getSeasons();
         if (!active) return;
@@ -110,7 +112,13 @@ export function SeasonCenterPage() {
       } catch (caughtError) {
         if (!active) return;
         setSnapshot(null);
-        setError(caughtError instanceof Error ? caughtError.message : "시즌 snapshot을 불러오지 못했습니다.");
+        const message = caughtError instanceof Error ? caughtError.message : "시즌 snapshot을 불러오지 못했습니다.";
+        if (message.includes("season not found") || message.includes("404")) {
+          setEmptyMessage("선택한 시즌 또는 시리즈에는 아직 표시할 데이터가 없습니다. 다른 시즌이나 시리즈를 선택해보세요.");
+          setError(null);
+        } else {
+          setError(message);
+        }
       } finally {
         if (active) setIsLoading(false);
       }
@@ -128,6 +136,7 @@ export function SeasonCenterPage() {
     async function loadSnapshot() {
       setIsLoading(true);
       setError(null);
+      setEmptyMessage(null);
       try {
         const nextSnapshot = await fetchSeasonSnapshot(selectedSeason, seriesCode);
         if (!active) return;
@@ -135,7 +144,13 @@ export function SeasonCenterPage() {
       } catch (caughtError) {
         if (!active) return;
         setSnapshot(null);
-        setError(caughtError instanceof Error ? caughtError.message : "시즌 snapshot을 불러오지 못했습니다.");
+        const message = caughtError instanceof Error ? caughtError.message : "시즌 snapshot을 불러오지 못했습니다.";
+        if (message.includes("season not found") || message.includes("404")) {
+          setEmptyMessage("선택한 시즌 또는 시리즈에는 아직 표시할 데이터가 없습니다. 다른 시즌이나 시리즈를 선택해보세요.");
+          setError(null);
+        } else {
+          setError(message);
+        }
       } finally {
         if (active) setIsLoading(false);
       }
@@ -269,8 +284,8 @@ export function SeasonCenterPage() {
           </div>
           {isLoading ? <div className="rounded-[28px] border border-white/10 bg-white/4 px-6 py-10 text-slate-300">시즌 데이터를 불러오는 중입니다...</div> : null}
           {!isLoading && error ? <div className="rounded-[28px] border border-rose-300/20 bg-rose-300/10 px-6 py-10 text-rose-100">{error}</div> : null}
-          {!isLoading && !error && snapshot && season !== null && view === "home" ? <HomeView season={season} seasons={seasons} seriesCode={seriesCode} onSeasonChange={handleSeasonChange} onSeriesChange={handleSeriesChange} snapshot={snapshot} onSelectTeam={handleSelectTeam} /> : null}
-          {!isLoading && !error && snapshot && season !== null && view === "players" ? <PlayersView season={season} seasons={seasons} seriesCode={seriesCode} onSeasonChange={handleSeasonChange} onSeriesChange={handleSeriesChange} snapshot={snapshot} mode={mode} onModeChange={(nextMode) => { setMode(nextMode); resetPaging(); }} qualifiedHittersOnly={qualifiedHittersOnly} onQualifiedHittersOnlyChange={(next) => { setQualifiedHittersOnly(next); resetPaging(); }} qualifiedPitchersOnly={qualifiedPitchersOnly} onQualifiedPitchersOnlyChange={(next) => { setQualifiedPitchersOnly(next); resetPaging(); }} playerGroup={playerGroup} onPlayerGroupChange={(group) => { setPlayerGroup(group); resetPaging(); }} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); resetPaging(); }} selectedCategoryKey={selectedCategoryKey} onSelectedCategoryKeyChange={(key) => { setSelectedCategoryKey(key); resetPaging(); }} onSelectPlayer={handleSelectPlayer} /> : null}
+          {!isLoading && !error && season !== null && view === "home" ? <HomeView season={season} seasons={seasons} seriesCode={seriesCode} onSeasonChange={handleSeasonChange} onSeriesChange={handleSeriesChange} snapshot={snapshot} onSelectTeam={handleSelectTeam} emptyMessage={emptyMessage} /> : null}
+          {!isLoading && !error && season !== null && view === "players" ? <PlayersView season={season} seasons={seasons} seriesCode={seriesCode} onSeasonChange={handleSeasonChange} onSeriesChange={handleSeriesChange} snapshot={snapshot} mode={mode} onModeChange={(nextMode) => { setMode(nextMode); resetPaging(); }} qualifiedHittersOnly={qualifiedHittersOnly} onQualifiedHittersOnlyChange={(next) => { setQualifiedHittersOnly(next); resetPaging(); }} qualifiedPitchersOnly={qualifiedPitchersOnly} onQualifiedPitchersOnlyChange={(next) => { setQualifiedPitchersOnly(next); resetPaging(); }} playerGroup={playerGroup} onPlayerGroupChange={(group) => { setPlayerGroup(group); resetPaging(); }} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); resetPaging(); }} selectedCategoryKey={selectedCategoryKey} onSelectedCategoryKeyChange={(key) => { setSelectedCategoryKey(key); resetPaging(); }} onSelectPlayer={handleSelectPlayer} emptyMessage={emptyMessage} /> : null}
           {!isLoading && !error && playerDetail && season !== null && view === "player" ? <PlayerDetailView season={season} seasons={seasons} seriesCode={seriesCode} onSeasonChange={handleSeasonChange} onSeriesChange={handleSeriesChange} detail={playerDetail} onBack={() => { setView("players"); resetPaging(); }} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); resetPaging(); }} onOpenGame={handleOpenGame} /> : null}
           {!isLoading && !error && teamDetail && season !== null && view === "team" ? <TeamDetailView season={season} seasons={seasons} seriesCode={seriesCode} onSeasonChange={handleSeasonChange} onSeriesChange={handleSeriesChange} detail={teamDetail} onOpenGame={handleOpenGame} /> : null}
           {!isLoading && !error && gamesPage && season !== null && view === "games" ? <GamesView season={season} seasons={seasons} seriesCode={seriesCode} onSeasonChange={handleSeasonChange} onSeriesChange={handleSeriesChange} gamesPage={gamesPage} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); resetPaging(); }} onOpenGame={handleOpenGame} /> : null}
