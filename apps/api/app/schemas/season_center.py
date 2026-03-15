@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.schemas.freshness import FreshnessResponse
+
 
 class SeasonListResponse(BaseModel):
     seasons: list[int]
@@ -67,6 +69,7 @@ class LeaderboardPlayerResponse(BaseModel):
 class SeasonSnapshotResponse(BaseModel):
     season: int
     snapshot_label: str
+    freshness: FreshnessResponse
     standings: list[TeamStandingResponse]
     players: list[LeaderboardPlayerResponse]
 
@@ -118,4 +121,5 @@ class PlayerRecordsPageResponse(BaseModel):
     total_count: int
     total_pages: int
     snapshot_label: str
+    freshness: FreshnessResponse
     items: list[PlayerRecordRowResponse]

@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.schemas.freshness import FreshnessResponse
 from app.schemas.season_center import LeaderboardPlayerResponse, PlayerRecordRowResponse, PlayerRecordsPageResponse, SeasonListResponse, SeasonSnapshotResponse, TeamStandingResponse
+from app.services.freshness_service import get_scope_freshness
 from app.services.season_center_query_service import get_player_records_page, get_season_center_snapshot, list_available_seasons
 
 router = APIRouter(tags=["seasons"])
@@ -24,10 +26,12 @@ def get_season_snapshot(
     snapshot = get_season_center_snapshot(session, season, series_code=series_code)
     if snapshot is None:
         raise HTTPException(status_code=404, detail="season not found")
+    freshness = get_scope_freshness(session, season=season, series_code=series_code)
 
     return SeasonSnapshotResponse(
         season=snapshot.season,
         snapshot_label=snapshot.snapshot_label,
+        freshness=FreshnessResponse(**freshness),
         standings=[TeamStandingResponse(**asdict(item)) for item in snapshot.standings],
         players=[LeaderboardPlayerResponse(**asdict(item)) for item in snapshot.players],
     )
@@ -56,6 +60,7 @@ def get_season_player_records(
     )
     if result is None:
         raise HTTPException(status_code=404, detail="season not found")
+    freshness = get_scope_freshness(session, season=season, series_code=series_code)
 
     return PlayerRecordsPageResponse(
         season=result.season,
@@ -68,5 +73,6 @@ def get_season_player_records(
         total_count=result.total_count,
         total_pages=result.total_pages,
         snapshot_label=result.snapshot_label,
+        freshness=FreshnessResponse(**freshness),
         items=[PlayerRecordRowResponse(**asdict(item)) for item in result.items],
     )

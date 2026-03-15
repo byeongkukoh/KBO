@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.schemas.freshness import FreshnessResponse
 from app.services.game_query_service import get_player_ingested_summary
+from app.services.freshness_service import get_scope_freshness
 from app.services.player_detail_service import get_player_season_detail
 from app.schemas.player_detail import PlayerDetailLogResponse, PlayerDetailResponse
 from pydantic import BaseModel
@@ -92,6 +94,7 @@ def get_player_detail(
         raise HTTPException(status_code=404, detail="player not found")
 
     detail_data = cast(dict[str, Any], detail)
+    freshness = get_scope_freshness(session, season=season, series_code=series_code)
 
     return PlayerDetailResponse(
         player_key=str(detail_data["player_key"]),
@@ -107,6 +110,7 @@ def get_player_detail(
         page_size=int(detail_data["page_size"]),
         total_count=int(detail_data["total_count"]),
         total_pages=int(detail_data["total_pages"]),
+        freshness=FreshnessResponse(**freshness),
         seasons=cast(list[dict[str, int | float | str | bool | None]], detail_data["seasons"]),
         logs=[PlayerDetailLogResponse(**cast(dict[str, Any], item)) for item in cast(list[dict[str, Any]], detail_data["logs"])],
     )

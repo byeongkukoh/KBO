@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.schemas.freshness import FreshnessResponse
+
 
 class PlayerDetailLogResponse(BaseModel):
     game_id: str
@@ -41,5 +43,6 @@ class PlayerDetailResponse(BaseModel):
     page_size: int
     total_count: int
     total_pages: int
+    freshness: FreshnessResponse
     seasons: list[dict[str, int | float | str | bool | None]]
     logs: list[PlayerDetailLogResponse]
