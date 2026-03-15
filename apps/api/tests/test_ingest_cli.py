@@ -45,12 +45,12 @@ def test_ingest_single_game_is_idempotent(sqlite_db_url: str) -> None:
 
 def test_merge_duplicate_batting_and_pitching_rows() -> None:
     batting_rows = [
-        PlayerBattingParsed("WO", "wo-어준서", "어준서", 8, "SS", 2, 2, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1),
-        PlayerBattingParsed("WO", "wo-어준서", "어준서", 9, "PH", 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0),
+        PlayerBattingParsed("WO", "wo-어준서", "어준서", 8, "SS", 2, 2, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1),
+        PlayerBattingParsed("WO", "wo-어준서", "어준서", 9, "PH", 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0),
     ]
     pitching_rows = [
-        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 2, 5, 18, 4, 1, 0, 0, 1, 0, 0, "승"),
-        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 1, 2, 9, 1, 0, 0, 1, 0, 0, 0, None),
+        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 2, 5, 18, 4, 1, 0, 0, 0, 1, 0, 0, "승"),
+        PlayerPitchingParsed("KT", "kt-박영현", "박영현", 1, 2, 9, 1, 0, 0, 1, 0, 0, 0, 0, None),
     ]
 
     merged_batting = _merge_batting_rows(batting_rows)

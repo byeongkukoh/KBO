@@ -47,4 +47,17 @@ def test_refresh_league_context_persists_rows(sqlite_db_url: str) -> None:
 
     assert batting.ops is not None
     assert pitching.era is not None
-    assert {item.metric_code for item in constants} == {"OPS_PLUS_BASELINE", "ERA_PLUS_BASELINE"}
+    assert {item.metric_code for item in constants} == {
+        "OPS_PLUS_BASELINE",
+        "ERA_PLUS_BASELINE",
+        "WOBA_U_BB_WEIGHT",
+        "WOBA_HBP_WEIGHT",
+        "WOBA_1B_WEIGHT",
+        "WOBA_2B_WEIGHT",
+        "WOBA_3B_WEIGHT",
+        "WOBA_HR_WEIGHT",
+        "WOBA_SCALE",
+        "LEAGUE_WOBA",
+        "LEAGUE_R_PER_PA",
+        "FIP_CONSTANT",
+    }
