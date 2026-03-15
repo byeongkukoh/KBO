@@ -17,6 +17,7 @@
 - 시즌 센터 프론트/백엔드 구조를 기능 단위 모듈로 분리해 유지보수성을 개선했다.
 - 시즌 센터는 이제 URL query state, 전체 기록 페이지네이션, 선수 상세 페이지를 포함한 실제 탐색 흐름을 지원한다.
 - 시즌 센터 URL 구조는 `/seasons/:season`, `/seasons/:season/players`, `/seasons/:season/players/:playerKey` 기준으로 동작한다.
+- 데이터가 없는 시즌/시리즈를 선택해도 시즌 센터 컨트롤을 유지한 채 empty state 로 복구되도록 프론트 UX를 보강했다.
 - 시즌 센터와 선수 상세에 sabermetrics v1 지표가 추가되어 저위험 파생 지표를 실제 2025 시즌 데이터 기준으로 확인할 수 있다.
 - 팀 상세 페이지와 경기 목록/상세 화면이 season center 흐름에 연결되었다.
 - league baseline/상수 계층을 확장해 Tier 2 지표 일부(`wOBA`, `wRC`, `wRC+`, `FIP`)를 실제 API 응답에 포함하기 시작했다.

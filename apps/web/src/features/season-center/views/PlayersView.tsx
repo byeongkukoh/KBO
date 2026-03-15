@@ -4,6 +4,7 @@ import { getSeasonPlayerRecords } from "../../../lib/api";
 import { getLeaderboardCategories, sortPlayers } from "../../../lib/records";
 import type { FullViewMode, PlayerGroup, PlayerRecordsPage, SeasonSnapshot, SeriesCode } from "../../../types/records";
 import { LeaderboardCard } from "../components/LeaderboardCard";
+import { PlayerComparisonPanel } from "../components/PlayerComparisonPanel";
 import { PlayerRecordsTable } from "../components/PlayerRecordsTable";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { SeriesSelect } from "../components/SeriesSelect";
@@ -194,6 +195,7 @@ export function PlayersView({
         </div>
       ) : (
         <section className="space-y-4">
+          <PlayerComparisonPanel season={season} seriesCode={seriesCode} group={playerGroup} candidates={snapshot?.players.filter((player) => (playerGroup === "hitters" ? player.battingAvg !== undefined : player.era !== undefined)) ?? []} />
           <div className="flex flex-col gap-4 rounded-[28px] border border-white/10 bg-slate-950/60 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 className="text-xl font-semibold text-white">전체 선수 기록</h3>
