@@ -57,6 +57,7 @@
   - 타자: `ISO`, `BABIP`, `BB%`, `K%`
   - 투수: `WHIP`, `K/9`, `BB/9`, `K/BB`
   - 시즌 snapshot, player-records, player-detail 응답과 프론트 전체 기록/선수 상세 화면에 공통 반영
+  - 고급 지표 Tier 2 전 단계로, 리그 평균/상수 데이터 없이 계산 가능한 저위험 파생 지표만 우선 노출
 - 2025 실제 시즌 적재 완료
   - `python -m app.ingest.cli ingest-season --season 2025 --series-group preseason --series-group regular --series-group postseason --use-live --start-date 2025-03-01 --end-date 2025-10-31` 실행
   - 적재 결과: preseason 42경기, regular 720경기, postseason 16경기, 총 778경기 성공
