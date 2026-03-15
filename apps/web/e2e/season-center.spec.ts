@@ -267,6 +267,57 @@ test("renders db-backed standings and player records", async ({ page }) => {
     });
   });
 
+  await page.route(/http:\/\/127\.0\.0\.1:8000\/api\/players\/ss-%EC%9B%90%ED%83%9C%EC%9D%B8\/season-detail.*/, async (route) => {
+    await route.fulfill({
+      json: {
+        player_key: "ss-원태인",
+        player_name: "원태인",
+        team_code: "SS",
+        group: "pitchers",
+        season: 2025,
+        series_code: "regular",
+        qualified: true,
+        totals: {
+          games: 29,
+          innings_outs: 539,
+          innings_display: "179.2",
+          hits_allowed: 141,
+          walks_allowed: 49,
+          strikeouts: 164,
+          wins: 14,
+          earned_runs: 56,
+        },
+        metrics: {
+          whip: 1.06,
+          k_per_9: 8.23,
+          bb_per_9: 2.46,
+          kbb: 3.35,
+        },
+        page: 1,
+        page_size: 25,
+        total_count: 2,
+        total_pages: 1,
+        logs: [
+          {
+            game_id: "20251001SSLG0",
+            game_date: "2025-10-01",
+            series_code: "regular",
+            stadium: "잠실",
+            result: "W",
+            opponent_team_code: "LG",
+            innings_outs: 21,
+            innings_display: "7.0",
+            hits_allowed: 4,
+            walks_allowed: 1,
+            strikeouts: 8,
+            earned_runs: 1,
+            decision_code: "승",
+          },
+        ],
+      },
+    });
+  });
+
   await page.goto("/");
 
   await expect(page.getByText(/시즌 팀 순위/)).toBeVisible();
@@ -285,4 +336,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
   await page.getByRole("button", { name: "투수" }).click();
   await expect(page.getByText("179.2")).toBeVisible();
   await expect(page.getByText("원태인")).toBeVisible();
+  await page.getByRole("button", { name: "원태인" }).click();
+  await expect(page.getByText("Player / Detail")).toBeVisible();
+  await expect(page.getByText("7.0")).toBeVisible();
 });
