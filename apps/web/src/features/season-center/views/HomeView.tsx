@@ -14,7 +14,7 @@ const teamSortOptions: Array<{ key: TeamSortKey; label: string }> = [
   { key: "era", label: "평균자책점" },
 ];
 
-export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeriesChange, snapshot }: { season: number; seasons: number[]; seriesCode: SeriesCode; onSeasonChange: (season: number) => void; onSeriesChange: (series: SeriesCode) => void; snapshot: SeasonSnapshot }) {
+export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeriesChange, snapshot, onSelectTeam }: { season: number; seasons: number[]; seriesCode: SeriesCode; onSeasonChange: (season: number) => void; onSeriesChange: (series: SeriesCode) => void; snapshot: SeasonSnapshot; onSelectTeam: (teamCode: string) => void }) {
   const [sortKey, setSortKey] = useState<TeamSortKey>("winPct");
   const sortedStandings = useMemo(() => sortStandings(snapshot.standings, sortKey), [snapshot.standings, sortKey]);
   const podium = sortedStandings.slice(0, 3);
@@ -41,7 +41,7 @@ export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeries
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-400">#{index + 1}</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-white">{team.teamName}</h3>
+                  <button type="button" className="mt-2 text-2xl font-semibold text-white hover:text-cyan-200" onClick={() => onSelectTeam(team.teamCode)}>{team.teamName}</button>
                   <p className="mt-2 text-sm text-cyan-100/75">{team.teamCode} · 승률 {team.winPct.toFixed(3)}</p>
                 </div>
                 <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-right">
@@ -93,7 +93,7 @@ export function HomeView({ season, seasons, seriesCode, onSeasonChange, onSeries
               {sortedStandings.map((team) => (
                 <tr key={team.teamCode} className="border-t border-white/8">
                   <td className="px-4 py-4 text-left font-semibold text-white">{team.rank}</td>
-                  <td className="px-4 py-4"><div className="font-medium text-white">{team.teamName}</div><div className="text-xs text-slate-400">{team.wins}-{team.losses}-{team.draws}</div></td>
+                  <td className="px-4 py-4"><button type="button" className="font-medium text-white hover:text-cyan-200" onClick={() => onSelectTeam(team.teamCode)}>{team.teamName}</button><div className="text-xs text-slate-400">{team.wins}-{team.losses}-{team.draws}</div></td>
                   <td className="px-4 py-4 text-right">{team.winPct.toFixed(3)}</td>
                   <td className="px-4 py-4 text-right">{team.hits}</td>
                   <td className="px-4 py-4 text-right">{team.doubles}</td>

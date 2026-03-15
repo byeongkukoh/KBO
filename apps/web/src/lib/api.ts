@@ -1,5 +1,5 @@
 import type { GameDetail, PlayerSummary } from "../types/game";
-import type { LeaderboardPlayer, PlayerDetail, PlayerDetailLog, PlayerGroup, PlayerRecordRow, PlayerRecordsPage, SeasonSnapshot, SeriesCode, TeamStanding } from "../types/records";
+import type { GameListItem, GameListPage, LeaderboardPlayer, PlayerDetail, PlayerDetailLog, PlayerGroup, PlayerRecordRow, PlayerRecordsPage, SeasonSnapshot, SeriesCode, TeamSeasonDetail, TeamStanding } from "../types/records";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api").replace(/\/$/, "");
 
@@ -178,6 +178,66 @@ type ApiPlayerDetail = {
   logs: ApiPlayerDetailLog[];
 };
 
+type ApiTeamSeasonDetail = {
+  season: number;
+  series_code: string | null;
+  team_code: string;
+  team_name: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  win_pct: number | null;
+  runs_scored: number;
+  runs_allowed: number;
+  run_diff: number;
+  hits: number;
+  doubles: number;
+  stolen_bases: number;
+  batting_avg: number | null;
+  ops: number | null;
+  era: number | null;
+  whip: number | null;
+  ops_plus: number | null;
+  era_plus: number | null;
+  last_ten: string;
+  streak: string;
+  recent_games: Array<{
+    game_id: string;
+    game_date: string;
+    series_code: string;
+    stadium: string;
+    result: string;
+    opponent_team_code: string;
+    team_score: number;
+    opponent_score: number;
+  }>;
+};
+
+type ApiGameListItem = {
+  game_id: string;
+  game_date: string;
+  series_code: string;
+  series_name: string;
+  stadium: string;
+  away_team_code: string;
+  home_team_code: string;
+  away_score: number;
+  home_score: number;
+  status_code: string;
+};
+
+type ApiGameListPage = {
+  season: number;
+  series_code: string | null;
+  team_code: string | null;
+  game_date: string | null;
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+  items: ApiGameListItem[];
+};
+
 function adaptTeamStanding(team: ApiTeamStanding): TeamStanding {
   return {
     rank: team.rank,
@@ -299,6 +359,21 @@ function adaptPlayerDetailLog(log: ApiPlayerDetailLog): PlayerDetailLog {
   };
 }
 
+function adaptGameListItem(item: ApiGameListItem): GameListItem {
+  return {
+    gameId: item.game_id,
+    gameDate: item.game_date,
+    seriesCode: item.series_code,
+    seriesName: item.series_name,
+    stadium: item.stadium,
+    awayTeamCode: item.away_team_code,
+    homeTeamCode: item.home_team_code,
+    awayScore: item.away_score,
+    homeScore: item.home_score,
+    statusCode: item.status_code,
+  };
+}
+
 export async function getSeasons(): Promise<number[]> {
   const response = await requestJson<ApiSeasonList>("/seasons");
   return response.seasons;
@@ -379,5 +454,66 @@ export async function getPlayerSeasonDetail(options: {
     totalPages: response.total_pages,
     seasons: response.seasons as Array<Record<string, string | number | boolean | null>>,
     logs: response.logs.map(adaptPlayerDetailLog),
+  };
+}
+
+export async function getTeamSeasonDetail(options: { teamCode: string; season: number; seriesCode: SeriesCode }): Promise<TeamSeasonDetail> {
+  const response = await requestJson<ApiTeamSeasonDetail>(`/teams/${encodeURIComponent(options.teamCode)}/season-detail?season=${options.season}&series_code=${options.seriesCode}`);
+  return {
+    season: response.season,
+    seriesCode: response.series_code === null ? undefined : (response.series_code as SeriesCode),
+    teamCode: response.team_code,
+    teamName: response.team_name,
+    wins: response.wins,
+    losses: response.losses,
+    draws: response.draws,
+    winPct: response.win_pct ?? undefined,
+    runsScored: response.runs_scored,
+    runsAllowed: response.runs_allowed,
+    runDiff: response.run_diff,
+    hits: response.hits,
+    doubles: response.doubles,
+    stolenBases: response.stolen_bases,
+    battingAvg: response.batting_avg ?? undefined,
+    ops: response.ops ?? undefined,
+    era: response.era ?? undefined,
+    whip: response.whip ?? undefined,
+    opsPlus: response.ops_plus ?? undefined,
+    eraPlus: response.era_plus ?? undefined,
+    lastTen: response.last_ten,
+    streak: response.streak,
+    recentGames: response.recent_games.map((item) => ({
+      gameId: item.game_id,
+      gameDate: item.game_date,
+      seriesCode: item.series_code,
+      stadium: item.stadium,
+      result: item.result,
+      opponentTeamCode: item.opponent_team_code,
+      teamScore: item.team_score,
+      opponentScore: item.opponent_score,
+    })),
+  };
+}
+
+export async function getGamesPage(options: { season: number; seriesCode: SeriesCode; teamCode?: string; gameDate?: string; page: number; pageSize: number }): Promise<GameListPage> {
+  const params = new URLSearchParams({
+    season: String(options.season),
+    series_code: options.seriesCode,
+    page: String(options.page),
+    page_size: String(options.pageSize),
+  });
+  if (options.teamCode) params.set("team_code", options.teamCode);
+  if (options.gameDate) params.set("game_date", options.gameDate);
+  const response = await requestJson<ApiGameListPage>(`/games?${params.toString()}`);
+  return {
+    season: response.season,
+    seriesCode: response.series_code === null ? undefined : (response.series_code as SeriesCode),
+    teamCode: response.team_code ?? undefined,
+    gameDate: response.game_date ?? undefined,
+    page: response.page,
+    pageSize: response.page_size,
+    totalCount: response.total_count,
+    totalPages: response.total_pages,
+    items: response.items.map(adaptGameListItem),
   };
 }

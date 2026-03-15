@@ -17,6 +17,7 @@ export function Sidebar({ view, onChange, seriesCode }: { view: AppView; onChang
           {[
             { key: "home" as const, label: "홈", description: "팀 순위와 팀 통계" },
             { key: "players" as const, label: "선수 기록", description: "Top 5와 전체 기록" },
+            { key: "games" as const, label: "경기 기록", description: "완료된 경기 목록과 상세" },
           ].map((item) => {
             const active = view === item.key;
             return (
