@@ -107,6 +107,7 @@ def _seed_season_center_data() -> None:
                         doubles=1,
                         triples=0,
                         home_runs=0,
+                        stolen_bases=1,
                         runs_batted_in=1,
                         walks=0,
                         hit_by_pitch=0,
@@ -127,6 +128,7 @@ def _seed_season_center_data() -> None:
                         doubles=0,
                         triples=0,
                         home_runs=0,
+                        stolen_bases=0,
                         runs_batted_in=0,
                         walks=0,
                         hit_by_pitch=0,
@@ -147,6 +149,7 @@ def _seed_season_center_data() -> None:
                         doubles=1,
                         triples=0,
                         home_runs=0,
+                        stolen_bases=0,
                         runs_batted_in=1,
                         walks=0,
                         hit_by_pitch=0,
@@ -173,6 +176,7 @@ def _seed_season_center_data() -> None:
                         strikeouts=7,
                         runs_allowed=2,
                         earned_runs=2,
+                        decision_code="승",
                     ),
                     PlayerGamePitchingStat(
                         game_id=game.id,
@@ -189,6 +193,7 @@ def _seed_season_center_data() -> None:
                         strikeouts=6,
                         runs_allowed=4,
                         earned_runs=4,
+                        decision_code="패",
                     ),
                     PlayerGamePitchingStat(
                         game_id=game.id,
@@ -205,6 +210,7 @@ def _seed_season_center_data() -> None:
                         strikeouts=1,
                         runs_allowed=0,
                         earned_runs=0,
+                        decision_code=None,
                     ),
                 ]
             )
@@ -236,7 +242,7 @@ def test_get_season_snapshot(client) -> None:
     assert data["standings"][0]["draws"] == 1
     assert data["standings"][0]["hits"] == 27
     assert data["standings"][0]["games_back"] == 0.0
-    assert data["standings"][0]["stolen_bases"] == 0
+    assert data["standings"][0]["stolen_bases"] == 3
     hitter = next(item for item in data["players"] if item["player_id"] == "ss-구자욱")
     assert hitter["qualified_hitter"] is True
     assert hitter["hits"] == 6
@@ -244,7 +250,7 @@ def test_get_season_snapshot(client) -> None:
     pitcher = next(item for item in data["players"] if item["player_id"] == "ss-원태인")
     assert pitcher["qualified_pitcher"] is True
     assert pitcher["era"] == 3.0
-    assert pitcher["wins"] == 0
+    assert pitcher["wins"] == 3
 
 
 def test_missing_season_returns_not_found(client) -> None:
@@ -294,3 +300,36 @@ def test_get_season_pitcher_records_returns_baseball_innings_display(client) -> 
     first_pitcher = next(item for item in data["items"] if item["player_id"] == "ss-원태인")
     assert first_pitcher["innings_outs"] == 54
     assert first_pitcher["innings_display"] == "18.0"
+
+
+def test_get_player_hitter_season_detail(client) -> None:
+    _seed_season_center_data()
+
+    response = client.get(
+        "/api/players/ss-%EA%B5%AC%EC%9E%90%EC%9A%B1/season-detail",
+        params={"season": 2026, "group": "hitters", "page": 1, "page_size": 2},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["player_name"] == "구자욱"
+    assert data["totals"]["hits"] == 6
+    assert data["totals"]["stolen_bases"] == 3
+    assert data["page_size"] == 2
+    assert len(data["logs"]) == 2
+
+
+def test_get_player_pitcher_season_detail(client) -> None:
+    _seed_season_center_data()
+
+    response = client.get(
+        "/api/players/ss-%EC%9B%90%ED%83%9C%EC%9D%B8/season-detail",
+        params={"season": 2026, "group": "pitchers", "page": 1, "page_size": 5},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["player_name"] == "원태인"
+    assert data["totals"]["wins"] == 3
+    assert data["totals"]["innings_display"] == "18.0"
+    assert data["logs"][0]["innings_display"] == "6.0"
