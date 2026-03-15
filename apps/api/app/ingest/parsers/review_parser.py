@@ -22,6 +22,7 @@ class PlayerBattingParsed:
     stolen_bases: int
     runs_batted_in: int
     walks: int
+    intentional_walks: int
     hit_by_pitch: int
     sacrifice_flies: int
     strikeouts: int
@@ -39,6 +40,7 @@ class PlayerPitchingParsed:
     hits_allowed: int
     home_runs_allowed: int
     walks_allowed: int
+    hit_by_pitch_allowed: int
     strikeouts: int
     runs_allowed: int
     earned_runs: int
@@ -52,7 +54,7 @@ class ReviewParsed:
 
 
 def _count_events(cells: list[str]) -> dict[str, int]:
-    counts = {"doubles": 0, "triples": 0, "home_runs": 0, "walks": 0, "hbp": 0, "sf": 0, "strikeouts": 0}
+    counts = {"doubles": 0, "triples": 0, "home_runs": 0, "walks": 0, "ibb": 0, "hbp": 0, "sf": 0, "strikeouts": 0}
     for cell in cells:
         text = cell.strip()
         if text in {"", "-", "&nbsp;"}:
@@ -63,7 +65,10 @@ def _count_events(cells: list[str]) -> dict[str, int]:
             counts["triples"] += 1
         elif text.endswith("2") or "2루" in text or ("2" in text and ("안" in text or "루" in text)):
             counts["doubles"] += 1
-        if "4구" in text or "볼넷" in text:
+        if "고의4구" in text or "고의 4구" in text:
+            counts["walks"] += 1
+            counts["ibb"] += 1
+        elif "4구" in text or "볼넷" in text:
             counts["walks"] += 1
         if "사구" in text:
             counts["hbp"] += 1
@@ -135,6 +140,7 @@ def parse_boxscore_payload(payload: dict[str, Any], away_team_code: str, home_te
                     home_runs=event_counts["home_runs"],
                     stolen_bases=stolen_base_counts.get(player_name, 0),
                     walks=event_counts["walks"],
+                    intentional_walks=event_counts["ibb"],
                     hit_by_pitch=event_counts["hbp"],
                     sacrifice_flies=event_counts["sf"],
                     strikeouts=event_counts["strikeouts"],
@@ -157,6 +163,7 @@ def parse_boxscore_payload(payload: dict[str, Any], away_team_code: str, home_te
                     hits_allowed=to_int(cells[10]["Text"]),
                     home_runs_allowed=to_int(cells[11]["Text"]),
                     walks_allowed=to_int(cells[12]["Text"]),
+                    hit_by_pitch_allowed=0,
                     strikeouts=to_int(cells[13]["Text"]),
                     runs_allowed=to_int(cells[14]["Text"]),
                     earned_runs=to_int(cells[15]["Text"]),
