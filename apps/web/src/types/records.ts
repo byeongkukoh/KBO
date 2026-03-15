@@ -1,5 +1,11 @@
 export type AppView = "home" | "players" | "player" | "team" | "games" | "game";
 
+export type Freshness = {
+  latestGameDate?: string;
+  lastSuccessfulSyncAt?: string;
+  contextUpdatedAt?: string;
+};
+
 export type TeamStanding = {
   teamCode: string;
   teamName: string;
@@ -107,6 +113,7 @@ export type LeaderboardCategory = {
 export type SeasonSnapshot = {
   season: number;
   snapshotLabel: string;
+  freshness: Freshness;
   standings: TeamStanding[];
   players: LeaderboardPlayer[];
 };
@@ -127,6 +134,7 @@ export type PlayerRecordsPage = {
   totalCount: number;
   totalPages: number;
   snapshotLabel: string;
+  freshness: Freshness;
   items: PlayerRecordRow[];
 };
 
@@ -170,6 +178,7 @@ export type PlayerDetail = {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  freshness: Freshness;
   seasons: Array<Record<string, string | number | boolean | null>>;
   logs: PlayerDetailLog[];
 };
@@ -197,6 +206,7 @@ export type TeamSeasonDetail = {
   eraPlus?: number;
   lastTen: string;
   streak: string;
+  freshness: Freshness;
   recentGames: Array<{
     gameId: string;
     gameDate: string;
@@ -231,5 +241,6 @@ export type GameListPage = {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  freshness: Freshness;
   items: GameListItem[];
 };

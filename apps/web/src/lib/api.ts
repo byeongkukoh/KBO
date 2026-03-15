@@ -4,7 +4,9 @@ import type { GameListItem, GameListPage, LeaderboardPlayer, PlayerDetail, Playe
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api").replace(/\/$/, "");
 
 async function requestJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 10000);
+  const response = await fetch(`${API_BASE_URL}${path}`, { signal: controller.signal }).finally(() => window.clearTimeout(timeout));
 
   if (!response.ok) {
     const text = await response.text();
@@ -14,8 +16,16 @@ async function requestJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function getGameDetail(gameId: string): Promise<GameDetail> {
-  return requestJson<GameDetail>(`/games/${encodeURIComponent(gameId)}`);
+type ApiGameDetail = GameDetail & {
+  freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
+};
+
+export async function getGameDetail(gameId: string): Promise<GameDetail> {
+  const response = await requestJson<ApiGameDetail>(`/games/${encodeURIComponent(gameId)}`);
+  return {
+    ...response,
+    freshness: adaptFreshness(response.freshness),
+  };
 }
 
 export function getPlayerSummary(playerKey: string): Promise<PlayerSummary> {
@@ -88,6 +98,7 @@ type ApiLeaderboardPlayer = {
 type ApiSeasonSnapshot = {
   season: number;
   snapshot_label: string;
+  freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
   standings: ApiTeamStanding[];
   players: ApiLeaderboardPlayer[];
 };
@@ -139,6 +150,7 @@ type ApiPlayerRecordsPage = {
   total_count: number;
   total_pages: number;
   snapshot_label: string;
+  freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
   items: ApiPlayerRecordRow[];
 };
 
@@ -182,6 +194,7 @@ type ApiPlayerDetail = {
   page_size: number;
   total_count: number;
   total_pages: number;
+  freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
   seasons: Array<Record<string, string | number | boolean | null>>;
   logs: ApiPlayerDetailLog[];
 };
@@ -209,6 +222,7 @@ type ApiTeamSeasonDetail = {
   era_plus: number | null;
   last_ten: string;
   streak: string;
+  freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
   recent_games: Array<{
     game_id: string;
     game_date: string;
@@ -243,8 +257,17 @@ type ApiGameListPage = {
   page_size: number;
   total_count: number;
   total_pages: number;
+  freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
   items: ApiGameListItem[];
 };
+
+function adaptFreshness(freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null }) {
+  return {
+    latestGameDate: freshness.latest_game_date ?? undefined,
+    lastSuccessfulSyncAt: freshness.last_successful_sync_at ?? undefined,
+    contextUpdatedAt: freshness.context_updated_at ?? undefined,
+  };
+}
 
 function adaptTeamStanding(team: ApiTeamStanding): TeamStanding {
   return {
@@ -400,6 +423,7 @@ export async function getSeasonSnapshot(season: number, seriesCode: SeriesCode):
   return {
     season: response.season,
     snapshotLabel: response.snapshot_label,
+    freshness: adaptFreshness(response.freshness),
     standings: response.standings.map(adaptTeamStanding),
     players: response.players.map(adaptLeaderboardPlayer),
   };
@@ -434,6 +458,7 @@ export async function getSeasonPlayerRecords(options: {
     totalCount: response.total_count,
     totalPages: response.total_pages,
     snapshotLabel: response.snapshot_label,
+    freshness: adaptFreshness(response.freshness),
     items: response.items.map(adaptPlayerRecordRow),
   };
 }
@@ -468,6 +493,7 @@ export async function getPlayerSeasonDetail(options: {
     pageSize: response.page_size,
     totalCount: response.total_count,
     totalPages: response.total_pages,
+    freshness: adaptFreshness(response.freshness),
     seasons: response.seasons as Array<Record<string, string | number | boolean | null>>,
     logs: response.logs.map(adaptPlayerDetailLog),
   };
@@ -498,6 +524,7 @@ export async function getTeamSeasonDetail(options: { teamCode: string; season: n
     eraPlus: response.era_plus ?? undefined,
     lastTen: response.last_ten,
     streak: response.streak,
+    freshness: adaptFreshness(response.freshness),
     recentGames: response.recent_games.map((item) => ({
       gameId: item.game_id,
       gameDate: item.game_date,
@@ -530,6 +557,7 @@ export async function getGamesPage(options: { season: number; seriesCode: Series
     pageSize: response.page_size,
     totalCount: response.total_count,
     totalPages: response.total_pages,
+    freshness: adaptFreshness(response.freshness),
     items: response.items.map(adaptGameListItem),
   };
 }

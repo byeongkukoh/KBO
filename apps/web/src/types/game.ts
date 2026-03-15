@@ -1,3 +1,5 @@
+import type { Freshness } from "./records";
+
 export type InningScore = {
   inning_no: number;
   away_runs: number;
@@ -46,6 +48,7 @@ export type GameDetail = {
   home_team_code: string;
   away_score: number;
   home_score: number;
+  freshness: Freshness;
   innings: InningScore[];
   team_stats: TeamStat[];
   batting_rows: BattingRow[];
