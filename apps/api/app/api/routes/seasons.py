@@ -1,72 +1,13 @@
 from dataclasses import asdict
 
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.services.season_center_query_service import list_available_seasons, get_season_center_snapshot
+from app.schemas.season_center import LeaderboardPlayerResponse, PlayerRecordRowResponse, PlayerRecordsPageResponse, SeasonListResponse, SeasonSnapshotResponse, TeamStandingResponse
+from app.services.season_center_query_service import get_player_records_page, get_season_center_snapshot, list_available_seasons
 
 router = APIRouter(tags=["seasons"])
-
-
-class SeasonListResponse(BaseModel):
-    seasons: list[int]
-
-
-class TeamStandingResponse(BaseModel):
-    rank: int
-    games: int
-    team_code: str
-    team_name: str
-    wins: int
-    losses: int
-    draws: int
-    win_pct: float
-    games_back: float
-    runs_scored: int
-    runs_allowed: int
-    run_diff: int
-    hits: int
-    doubles: int
-    batting_avg: float | None
-    obp: float | None
-    slg: float | None
-    ops: float | None
-    home_runs: int
-    stolen_bases: int | None
-    era: float | None
-    whip: float | None
-    last_ten: str
-    streak: str
-
-
-class LeaderboardPlayerResponse(BaseModel):
-    player_id: str
-    player_name: str
-    team_code: str
-    games: int
-    plate_appearances: int | None
-    innings: float | None
-    batting_avg: float | None
-    hits: int | None
-    doubles: int | None
-    home_runs: int | None
-    stolen_bases: int | None
-    ops: float | None
-    era: float | None
-    strikeouts: int | None
-    wins: int | None
-    whip: float | None
-    qualified_hitter: bool
-    qualified_pitcher: bool
-
-
-class SeasonSnapshotResponse(BaseModel):
-    season: int
-    snapshot_label: str
-    standings: list[TeamStandingResponse]
-    players: list[LeaderboardPlayerResponse]
 
 
 @router.get("/seasons", response_model=SeasonListResponse)
@@ -89,4 +30,43 @@ def get_season_snapshot(
         snapshot_label=snapshot.snapshot_label,
         standings=[TeamStandingResponse(**asdict(item)) for item in snapshot.standings],
         players=[LeaderboardPlayerResponse(**asdict(item)) for item in snapshot.players],
+    )
+
+
+@router.get("/seasons/{season}/player-records", response_model=PlayerRecordsPageResponse)
+def get_season_player_records(
+    season: int,
+    group: str = Query(pattern="^(hitters|pitchers)$"),
+    sort_key: str = Query(default="avg"),
+    qualified_only: bool = Query(default=True),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    series_code: str | None = Query(default=None, pattern="^(preseason|regular|postseason)$"),
+    session: Session = Depends(get_db),
+) -> PlayerRecordsPageResponse:
+    result = get_player_records_page(
+        session=session,
+        season=season,
+        series_code=series_code,
+        group=group,
+        sort_key=sort_key,
+        qualified_only=qualified_only,
+        page=page,
+        page_size=page_size,
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="season not found")
+
+    return PlayerRecordsPageResponse(
+        season=result.season,
+        series_code=result.series_code,
+        group=result.group,
+        sort_key=result.sort_key,
+        qualified_only=result.qualified_only,
+        page=result.page,
+        page_size=result.page_size,
+        total_count=result.total_count,
+        total_pages=result.total_pages,
+        snapshot_label=result.snapshot_label,
+        items=[PlayerRecordRowResponse(**asdict(item)) for item in result.items],
     )

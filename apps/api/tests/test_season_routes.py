@@ -261,3 +261,36 @@ def test_get_season_snapshot_with_series_code_filter(client) -> None:
     data = response.json()
     assert data["season"] == 2026
     assert data["snapshot_label"].endswith("regular db snapshot")
+
+
+def test_get_season_player_records_with_pagination(client) -> None:
+    _seed_season_center_data()
+
+    response = client.get(
+        "/api/seasons/2026/player-records",
+        params={"group": "hitters", "sort_key": "hits", "qualified_only": "false", "page": 1, "page_size": 2},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["group"] == "hitters"
+    assert data["page"] == 1
+    assert data["page_size"] == 2
+    assert data["total_count"] >= 3
+    assert data["items"][0]["rank"] == 1
+    assert data["items"][0]["hits"] >= data["items"][1]["hits"]
+
+
+def test_get_season_pitcher_records_returns_baseball_innings_display(client) -> None:
+    _seed_season_center_data()
+
+    response = client.get(
+        "/api/seasons/2026/player-records",
+        params={"group": "pitchers", "sort_key": "whip", "qualified_only": "false", "page": 1, "page_size": 10},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    first_pitcher = next(item for item in data["items"] if item["player_id"] == "ss-원태인")
+    assert first_pitcher["innings_outs"] == 54
+    assert first_pitcher["innings_display"] == "18.0"
