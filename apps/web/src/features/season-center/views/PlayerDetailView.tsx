@@ -52,6 +52,10 @@ export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, 
                     <th className="px-4 py-3 text-right">도루</th>
                     <th className="px-4 py-3 text-right">타율</th>
                     <th className="px-4 py-3 text-right">OPS</th>
+                    <th className="px-4 py-3 text-right">ISO</th>
+                    <th className="px-4 py-3 text-right">BABIP</th>
+                    <th className="px-4 py-3 text-right">BB%</th>
+                    <th className="px-4 py-3 text-right">K%</th>
                   </>
                 ) : (
                   <>
@@ -60,6 +64,9 @@ export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, 
                     <th className="px-4 py-3 text-right">탈삼진</th>
                     <th className="px-4 py-3 text-right">ERA</th>
                     <th className="px-4 py-3 text-right">WHIP</th>
+                    <th className="px-4 py-3 text-right">K/9</th>
+                    <th className="px-4 py-3 text-right">BB/9</th>
+                    <th className="px-4 py-3 text-right">K/BB</th>
                   </>
                 )}
               </tr>
@@ -79,6 +86,10 @@ export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, 
                       <td className="px-4 py-4 text-right">{seasonRow.stolen_bases}</td>
                       <td className="px-4 py-4 text-right">{typeof seasonRow.batting_avg === "number" ? seasonRow.batting_avg.toFixed(3) : "-"}</td>
                       <td className="px-4 py-4 text-right">{typeof seasonRow.ops === "number" ? seasonRow.ops.toFixed(3) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.iso === "number" ? seasonRow.iso.toFixed(3) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.babip === "number" ? seasonRow.babip.toFixed(3) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.bb_rate === "number" ? seasonRow.bb_rate.toFixed(3) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.k_rate === "number" ? seasonRow.k_rate.toFixed(3) : "-"}</td>
                     </>
                   ) : (
                     <>
@@ -87,6 +98,9 @@ export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, 
                       <td className="px-4 py-4 text-right">{seasonRow.strikeouts ?? "-"}</td>
                       <td className="px-4 py-4 text-right">{typeof seasonRow.era === "number" ? seasonRow.era.toFixed(2) : "-"}</td>
                       <td className="px-4 py-4 text-right">{typeof seasonRow.whip === "number" ? seasonRow.whip.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.k_per_9 === "number" ? seasonRow.k_per_9.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.bb_per_9 === "number" ? seasonRow.bb_per_9.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.kbb === "number" ? seasonRow.kbb.toFixed(2) : "-"}</td>
                     </>
                   )}
                 </tr>

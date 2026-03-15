@@ -66,10 +66,17 @@ type ApiLeaderboardPlayer = {
   home_runs: number | null;
   stolen_bases: number | null;
   ops: number | null;
+  iso: number | null;
+  babip: number | null;
+  bb_rate: number | null;
+  k_rate: number | null;
   era: number | null;
   strikeouts: number | null;
   wins: number | null;
   whip: number | null;
+  k_per_9: number | null;
+  bb_per_9: number | null;
+  kbb: number | null;
   qualified_hitter: boolean;
   qualified_pitcher: boolean;
 };
@@ -98,10 +105,17 @@ type ApiPlayerRecordRow = {
   home_runs: number | null;
   stolen_bases: number | null;
   ops: number | null;
+  iso: number | null;
+  babip: number | null;
+  bb_rate: number | null;
+  k_rate: number | null;
   era: number | null;
   strikeouts: number | null;
   wins: number | null;
   whip: number | null;
+  k_per_9: number | null;
+  bb_per_9: number | null;
+  kbb: number | null;
   qualified_hitter: boolean;
   qualified_pitcher: boolean;
 };
@@ -207,10 +221,17 @@ function adaptLeaderboardPlayer(player: ApiLeaderboardPlayer): LeaderboardPlayer
     homeRuns: player.home_runs ?? undefined,
     stolenBases: player.stolen_bases ?? undefined,
     ops: player.ops ?? undefined,
+    iso: player.iso ?? undefined,
+    babip: player.babip ?? undefined,
+    bbRate: player.bb_rate ?? undefined,
+    kRate: player.k_rate ?? undefined,
     era: player.era ?? undefined,
     strikeouts: player.strikeouts ?? undefined,
     wins: player.wins ?? undefined,
     whip: player.whip ?? undefined,
+    kPer9: player.k_per_9 ?? undefined,
+    bbPer9: player.bb_per_9 ?? undefined,
+    kbb: player.kbb ?? undefined,
     qualifiedHitter: player.qualified_hitter,
     qualifiedPitcher: player.qualified_pitcher,
   };
@@ -234,10 +255,17 @@ function adaptPlayerRecordRow(player: ApiPlayerRecordRow): PlayerRecordRow {
     homeRuns: player.home_runs ?? undefined,
     stolenBases: player.stolen_bases ?? undefined,
     ops: player.ops ?? undefined,
+    iso: player.iso ?? undefined,
+    babip: player.babip ?? undefined,
+    bbRate: player.bb_rate ?? undefined,
+    kRate: player.k_rate ?? undefined,
     era: player.era ?? undefined,
     strikeouts: player.strikeouts ?? undefined,
     wins: player.wins ?? undefined,
     whip: player.whip ?? undefined,
+    kPer9: player.k_per_9 ?? undefined,
+    bbPer9: player.bb_per_9 ?? undefined,
+    kbb: player.kbb ?? undefined,
     qualifiedHitter: player.qualified_hitter,
     qualifiedPitcher: player.qualified_pitcher,
   };
