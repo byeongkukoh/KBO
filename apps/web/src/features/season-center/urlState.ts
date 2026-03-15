@@ -12,6 +12,8 @@ export type SeasonCenterUrlState = {
   page: number;
   pageSize: number;
   playerKey?: string;
+  teamCode?: string;
+  gameId?: string;
 };
 
 const defaultState: SeasonCenterUrlState = {
@@ -28,7 +30,6 @@ const defaultState: SeasonCenterUrlState = {
 export function readUrlState(): SeasonCenterUrlState {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
   const params = new URLSearchParams(window.location.search);
-  const view = params.get("view");
   const series = params.get("series");
   const mode = params.get("mode");
   const group = params.get("group");
@@ -36,19 +37,28 @@ export function readUrlState(): SeasonCenterUrlState {
   const page = params.get("page");
   const pageSize = params.get("pageSize");
 
-  let derivedView: AppView = view === "players" || view === "player" ? view : "home";
+  let derivedView: AppView = "home";
   let derivedPlayerKey = params.get("player") ?? undefined;
+  let derivedTeamCode = params.get("team") ?? undefined;
+  let derivedGameId = params.get("game") ?? undefined;
   let derivedSeason = season ? Number(season) : undefined;
-  const match = path.match(/^\/seasons\/(\d+)(?:\/players(?:\/(.+))?)?$/);
+
+  const match = path.match(/^\/seasons\/(\d+)(?:\/(players(?:\/(.+))?|teams\/(.+)|games(?:\/(.+))?))?$/);
   if (match) {
     derivedSeason = Number(match[1]);
-    if (match[2]) {
+    if (match[3]) {
       derivedView = "player";
-      derivedPlayerKey = decodeURIComponent(match[2]);
+      derivedPlayerKey = decodeURIComponent(match[3]);
+    } else if (match[4]) {
+      derivedView = "team";
+      derivedTeamCode = decodeURIComponent(match[4]);
+    } else if (match[5]) {
+      derivedView = "game";
+      derivedGameId = decodeURIComponent(match[5]);
     } else if (path.includes("/players")) {
       derivedView = "players";
-    } else {
-      derivedView = "home";
+    } else if (path.includes("/games")) {
+      derivedView = "games";
     }
   }
 
@@ -64,13 +74,15 @@ export function readUrlState(): SeasonCenterUrlState {
     page: page ? Math.max(Number(page), 1) : 1,
     pageSize: pageSize ? Math.max(Number(pageSize), 1) : 25,
     playerKey: derivedPlayerKey,
+    teamCode: derivedTeamCode,
+    gameId: derivedGameId,
   };
 }
 
 export function writeUrlState(next: Partial<SeasonCenterUrlState>) {
   const current = { ...defaultState, ...readUrlState(), ...next };
   const params = new URLSearchParams();
-    params.set("series", current.seriesCode);
+  params.set("series", current.seriesCode);
   params.set("mode", current.mode);
   params.set("group", current.group);
   params.set("qh", current.qualifiedHittersOnly ? "1" : "0");
@@ -85,11 +97,10 @@ export function writeUrlState(next: Partial<SeasonCenterUrlState>) {
   }
   const season = current.season ?? new Date().getFullYear();
   let pathname = `/seasons/${season}`;
-  if (current.view === "players") {
-    pathname = `/seasons/${season}/players`;
-  }
-  if (current.view === "player" && current.playerKey) {
-    pathname = `/seasons/${season}/players/${encodeURIComponent(current.playerKey)}`;
-  }
+  if (current.view === "players") pathname = `/seasons/${season}/players`;
+  if (current.view === "player" && current.playerKey) pathname = `/seasons/${season}/players/${encodeURIComponent(current.playerKey)}`;
+  if (current.view === "team" && current.teamCode) pathname = `/seasons/${season}/teams/${encodeURIComponent(current.teamCode)}`;
+  if (current.view === "games") pathname = `/seasons/${season}/games`;
+  if (current.view === "game" && current.gameId) pathname = `/seasons/${season}/games/${encodeURIComponent(current.gameId)}`;
   window.history.replaceState({}, "", `${pathname}?${params.toString()}`);
 }
