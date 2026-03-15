@@ -19,6 +19,7 @@
 - 시즌 센터 URL 구조는 `/seasons/:season`, `/seasons/:season/players`, `/seasons/:season/players/:playerKey` 기준으로 동작한다.
 - 데이터가 없는 시즌/시리즈를 선택해도 시즌 센터 컨트롤을 유지한 채 empty state 로 복구되도록 프론트 UX를 보강했다.
 - 시즌 센터와 선수 상세에 sabermetrics v1 지표가 추가되어 저위험 파생 지표를 실제 2025 시즌 데이터 기준으로 확인할 수 있다.
+- 선수 상세에 월별 split 그래프와 선수 비교 차트 UI를 추가해 일반 사용자도 월별 추이와 선수 간 차이를 시각적으로 볼 수 있다.
 - 팀 상세 페이지와 경기 목록/상세 화면이 season center 흐름에 연결되었다.
 - league baseline/상수 계층을 확장해 Tier 2 지표 일부(`wOBA`, `wRC`, `wRC+`, `FIP`)를 실제 API 응답에 포함하기 시작했다.
 - season/team/game/player 응답에 freshness 메타데이터가 추가되어 마지막 적재 시점과 컨텍스트 갱신 시점을 함께 노출한다.
@@ -58,6 +59,8 @@
   - `GET /api/players/{player_key}/season-detail` 추가로 선수 상세 페이지에서 시즌 요약과 경기 로그 페이지네이션 제공
   - 시즌 센터에서 선수명 클릭 시 실제 player detail view 로 이동 가능
   - player detail 은 커리어 시즌 요약 테이블 + 선택 시즌 게임 로그 형태로 확장
+  - player detail 은 월별 split line chart 를 통해 타율/OPS/홈런/도루 등 월별 추이를 그래프로 표시
+  - 전체 선수 기록 화면에는 선수 비교 패널을 추가해 radar chart 와 월별 비교 line chart 를 제공
 - sabermetrics v1 추가 완료
   - 타자: `ISO`, `BABIP`, `BB%`, `K%`
   - 투수: `WHIP`, `K/9`, `BB/9`, `K/BB`
@@ -85,6 +88,10 @@
   - league context refresh 시 `LEAGUE_WOBA`, `LEAGUE_R_PER_PA`, `FIP_CONSTANT` 등 provisional season constants 저장
   - 시즌 snapshot / player-records / player-detail 에 `wOBA`, `wRC`, `wRC+`, `FIP` 노출
   - 현재 `IBB`, pitcher `HBP allowed` 는 source 제약으로 대부분 0 기반이며, constants 는 season-derived provisional 값이다.
+- 선수 비교/그래프 기능 1차 구현 완료
+  - `GET /api/players/{player_key}/season-detail` 응답에 `monthly_splits` 추가
+  - `GET /api/players/compare` 추가
+  - 프론트는 `Recharts` 기반 `LineChart` / `RadarChart` 로 월별 추이와 선수 비교를 렌더링
 - 2025 실제 시즌 적재 완료
   - `python -m app.ingest.cli ingest-season --season 2025 --series-group preseason --series-group regular --series-group postseason --use-live --start-date 2025-03-01 --end-date 2025-10-31` 실행
   - 적재 결과: preseason 42경기, regular 720경기, postseason 16경기, 총 778경기 성공
