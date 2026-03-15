@@ -23,6 +23,9 @@ export function PlayerRecordsTable({ group, rows, page, pageSize, totalCount, to
                   <th className="px-4 py-3 text-right">BABIP</th>
                   <th className="px-4 py-3 text-right">BB%</th>
                   <th className="px-4 py-3 text-right">K%</th>
+                  <th className="px-4 py-3 text-right">wOBA</th>
+                  <th className="px-4 py-3 text-right">wRC</th>
+                  <th className="px-4 py-3 text-right">wRC+</th>
                   <th className="px-4 py-3 text-right">OPS</th>
                 </>
               ) : (
@@ -35,6 +38,7 @@ export function PlayerRecordsTable({ group, rows, page, pageSize, totalCount, to
                   <th className="px-4 py-3 text-right">K/9</th>
                   <th className="px-4 py-3 text-right">BB/9</th>
                   <th className="px-4 py-3 text-right">K/BB</th>
+                  <th className="px-4 py-3 text-right">FIP</th>
                 </>
               )}
             </tr>
@@ -57,6 +61,9 @@ export function PlayerRecordsTable({ group, rows, page, pageSize, totalCount, to
                     <td className="px-4 py-4 text-right">{player.babip?.toFixed(3) ?? "-"}</td>
                     <td className="px-4 py-4 text-right">{player.bbRate?.toFixed(3) ?? "-"}</td>
                     <td className="px-4 py-4 text-right">{player.kRate?.toFixed(3) ?? "-"}</td>
+                    <td className="px-4 py-4 text-right">{player.woba?.toFixed(3) ?? "-"}</td>
+                    <td className="px-4 py-4 text-right">{player.wrc?.toFixed(1) ?? "-"}</td>
+                    <td className="px-4 py-4 text-right">{player.wrcPlus?.toFixed(1) ?? "-"}</td>
                     <td className="px-4 py-4 text-right">{player.ops?.toFixed(3) ?? "-"}</td>
                   </>
                 ) : (
@@ -69,6 +76,7 @@ export function PlayerRecordsTable({ group, rows, page, pageSize, totalCount, to
                     <td className="px-4 py-4 text-right">{player.kPer9?.toFixed(2) ?? "-"}</td>
                     <td className="px-4 py-4 text-right">{player.bbPer9?.toFixed(2) ?? "-"}</td>
                     <td className="px-4 py-4 text-right">{player.kbb?.toFixed(2) ?? "-"}</td>
+                    <td className="px-4 py-4 text-right">{player.fip?.toFixed(2) ?? "-"}</td>
                   </>
                 )}
               </tr>

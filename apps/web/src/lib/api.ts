@@ -70,6 +70,9 @@ type ApiLeaderboardPlayer = {
   babip: number | null;
   bb_rate: number | null;
   k_rate: number | null;
+  woba: number | null;
+  wrc: number | null;
+  wrc_plus: number | null;
   era: number | null;
   strikeouts: number | null;
   wins: number | null;
@@ -77,6 +80,7 @@ type ApiLeaderboardPlayer = {
   k_per_9: number | null;
   bb_per_9: number | null;
   kbb: number | null;
+  fip: number | null;
   qualified_hitter: boolean;
   qualified_pitcher: boolean;
 };
@@ -109,6 +113,9 @@ type ApiPlayerRecordRow = {
   babip: number | null;
   bb_rate: number | null;
   k_rate: number | null;
+  woba: number | null;
+  wrc: number | null;
+  wrc_plus: number | null;
   era: number | null;
   strikeouts: number | null;
   wins: number | null;
@@ -116,6 +123,7 @@ type ApiPlayerRecordRow = {
   k_per_9: number | null;
   bb_per_9: number | null;
   kbb: number | null;
+  fip: number | null;
   qualified_hitter: boolean;
   qualified_pitcher: boolean;
 };
@@ -285,6 +293,9 @@ function adaptLeaderboardPlayer(player: ApiLeaderboardPlayer): LeaderboardPlayer
     babip: player.babip ?? undefined,
     bbRate: player.bb_rate ?? undefined,
     kRate: player.k_rate ?? undefined,
+    woba: player.woba ?? undefined,
+    wrc: player.wrc ?? undefined,
+    wrcPlus: player.wrc_plus ?? undefined,
     era: player.era ?? undefined,
     strikeouts: player.strikeouts ?? undefined,
     wins: player.wins ?? undefined,
@@ -292,6 +303,7 @@ function adaptLeaderboardPlayer(player: ApiLeaderboardPlayer): LeaderboardPlayer
     kPer9: player.k_per_9 ?? undefined,
     bbPer9: player.bb_per_9 ?? undefined,
     kbb: player.kbb ?? undefined,
+    fip: player.fip ?? undefined,
     qualifiedHitter: player.qualified_hitter,
     qualifiedPitcher: player.qualified_pitcher,
   };
@@ -319,6 +331,9 @@ function adaptPlayerRecordRow(player: ApiPlayerRecordRow): PlayerRecordRow {
     babip: player.babip ?? undefined,
     bbRate: player.bb_rate ?? undefined,
     kRate: player.k_rate ?? undefined,
+    woba: player.woba ?? undefined,
+    wrc: player.wrc ?? undefined,
+    wrcPlus: player.wrc_plus ?? undefined,
     era: player.era ?? undefined,
     strikeouts: player.strikeouts ?? undefined,
     wins: player.wins ?? undefined,
@@ -326,6 +341,7 @@ function adaptPlayerRecordRow(player: ApiPlayerRecordRow): PlayerRecordRow {
     kPer9: player.k_per_9 ?? undefined,
     bbPer9: player.bb_per_9 ?? undefined,
     kbb: player.kbb ?? undefined,
+    fip: player.fip ?? undefined,
     qualifiedHitter: player.qualified_hitter,
     qualifiedPitcher: player.qualified_pitcher,
   };

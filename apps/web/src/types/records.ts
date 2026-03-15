@@ -44,6 +44,9 @@ export type LeaderboardPlayer = {
   babip?: number;
   bbRate?: number;
   kRate?: number;
+  woba?: number;
+  wrc?: number;
+  wrcPlus?: number;
   era?: number;
   strikeouts?: number;
   wins?: number;
@@ -51,6 +54,7 @@ export type LeaderboardPlayer = {
   kPer9?: number;
   bbPer9?: number;
   kbb?: number;
+  fip?: number;
   qualifiedHitter: boolean;
   qualifiedPitcher: boolean;
 };
@@ -76,6 +80,9 @@ export type PlayerRecordRow = {
   babip?: number;
   bbRate?: number;
   kRate?: number;
+  woba?: number;
+  wrc?: number;
+  wrcPlus?: number;
   era?: number;
   strikeouts?: number;
   wins?: number;
@@ -83,6 +90,7 @@ export type PlayerRecordRow = {
   kPer9?: number;
   bbPer9?: number;
   kbb?: number;
+  fip?: number;
   qualifiedHitter: boolean;
   qualifiedPitcher: boolean;
 };
