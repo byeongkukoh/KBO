@@ -21,6 +21,7 @@
 - 팀 상세 페이지와 경기 목록/상세 화면이 season center 흐름에 연결되었다.
 - league baseline/상수 계층을 확장해 Tier 2 지표 일부(`wOBA`, `wRC`, `wRC+`, `FIP`)를 실제 API 응답에 포함하기 시작했다.
 - season/team/game/player 응답에 freshness 메타데이터가 추가되어 마지막 적재 시점과 컨텍스트 갱신 시점을 함께 노출한다.
+- 2024 전체 시즌과 2026 현재까지 완료된 경기 데이터가 PostgreSQL 에 적재되어 multi-season 탐색이 가능하다.
 
 ## Completed Planning Work
 
@@ -69,6 +70,11 @@
   - `/api/games` 는 SQL-side filter/pagination 으로 전환
   - season snapshot / player-records / player-detail / team-detail / game-list / game-detail 에 freshness 응답 추가
   - 프론트 shell 이 freshness 정보를 보여주도록 갱신
+- 멀티 시즌 적재 및 정시 동기화 구현 완료
+  - 2024 시즌: preseason 46, regular 720, postseason 16 적재 완료
+  - 2026 시즌: preseason 20 적재 완료
+  - `/api/seasons` 응답은 현재 `[2026, 2025, 2024]`
+  - `python -m app.ingest.cli run-scheduled-season-sync ...` 로 지정 시각 정시 동기화 가능
 - 리그 baseline/상수 1차 구현 완료
   - `league_season_batting_contexts`, `league_season_pitching_contexts`, `advanced_metric_constants` 테이블 추가
   - `python -m app.ingest.cli refresh-league-context --season 2025 --series-code regular` 지원
