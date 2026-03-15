@@ -7,6 +7,7 @@ from pathlib import Path
 from app.db.session import get_session_factory
 from app.ingest.orchestrators.ingest_game import ingest_single_game
 from app.ingest.orchestrators.ingest_season import ingest_season
+from app.ingest.scheduler import run_daily_season_sync
 from app.services.league_context_service import refresh_league_context
 
 
@@ -37,6 +38,21 @@ def build_parser() -> argparse.ArgumentParser:
     context_parser = subparsers.add_parser("refresh-league-context", help="Refresh league baseline context for one season/series")
     context_parser.add_argument("--season", type=int, required=True)
     context_parser.add_argument("--series-code", choices=["preseason", "regular", "postseason"], required=True)
+
+    scheduler_parser = subparsers.add_parser("run-scheduled-season-sync", help="Run season sync repeatedly at configured times")
+    scheduler_parser.add_argument("--season", type=int, required=True)
+    scheduler_parser.add_argument(
+        "--series-group",
+        action="append",
+        choices=["preseason", "regular", "postseason"],
+        required=True,
+        dest="series_groups",
+    )
+    scheduler_parser.add_argument("--time", action="append", required=True, dest="times")
+    scheduler_parser.add_argument("--timezone", default="Asia/Seoul")
+    scheduler_parser.add_argument("--lookback-days", type=int, default=3)
+    scheduler_parser.add_argument("--fixture-dir", default="apps/api/tests/fixtures/kbo")
+    scheduler_parser.add_argument("--use-live", action="store_true")
     return parser
 
 
@@ -78,6 +94,18 @@ def main() -> None:
             refresh_league_context(session=session, season=args.season, series_code=args.series_code)
             session.commit()
         print(json.dumps({"season": args.season, "series_code": args.series_code, "status": "refreshed"}, ensure_ascii=False))
+        return
+
+    if args.command == "run-scheduled-season-sync":
+        run_daily_season_sync(
+            season=args.season,
+            series_groups=list(args.series_groups),
+            times=list(args.times),
+            timezone_name=args.timezone,
+            lookback_days=int(args.lookback_days),
+            use_live=bool(args.use_live),
+            fixture_dir=Path(args.fixture_dir),
+        )
 
 
 if __name__ == "__main__":
