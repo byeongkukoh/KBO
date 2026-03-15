@@ -1,4 +1,4 @@
-export type AppView = "home" | "players";
+export type AppView = "home" | "players" | "player";
 
 export type TeamStanding = {
   teamCode: string;
@@ -106,4 +106,47 @@ export type PlayerRecordsPage = {
   totalPages: number;
   snapshotLabel: string;
   items: PlayerRecordRow[];
+};
+
+export type PlayerDetailLog = {
+  gameId: string;
+  gameDate: string;
+  seriesCode: string;
+  stadium: string;
+  result: string;
+  opponentTeamCode: string;
+  positionCode?: string;
+  plateAppearances?: number;
+  atBats?: number;
+  hits?: number;
+  doubles?: number;
+  triples?: number;
+  homeRuns?: number;
+  stolenBases?: number;
+  walks?: number;
+  runsBattedIn?: number;
+  strikeouts?: number;
+  inningsOuts?: number;
+  inningsDisplay?: string;
+  hitsAllowed?: number;
+  walksAllowed?: number;
+  earnedRuns?: number;
+  decisionCode?: string;
+};
+
+export type PlayerDetail = {
+  playerKey: string;
+  playerName: string;
+  teamCode: string;
+  group: PlayerGroup;
+  season: number;
+  seriesCode?: SeriesCode;
+  qualified: boolean;
+  totals: Record<string, number | string>;
+  metrics: Record<string, number | null>;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  logs: PlayerDetailLog[];
 };

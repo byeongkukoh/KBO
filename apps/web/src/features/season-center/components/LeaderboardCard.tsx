@@ -1,6 +1,6 @@
 import type { LeaderboardCategory, LeaderboardPlayer } from "../../../types/records";
 
-export function LeaderboardCard({ rows, category }: { rows: LeaderboardPlayer[]; category: LeaderboardCategory }) {
+export function LeaderboardCard({ rows, category, onSelectPlayer }: { rows: LeaderboardPlayer[]; category: LeaderboardCategory; onSelectPlayer: (playerId: string, group: "hitters" | "pitchers") => void }) {
   return (
     <article className="rounded-[24px] border border-white/10 bg-slate-950/60 p-5">
       <div className="flex items-center justify-between gap-3">
@@ -18,7 +18,7 @@ export function LeaderboardCard({ rows, category }: { rows: LeaderboardPlayer[];
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-300/12 text-sm font-semibold text-cyan-100">{index + 1}</div>
                 <div>
-                  <div className="font-medium text-white">{player.playerName}</div>
+                  <button type="button" className="font-medium text-white hover:text-cyan-200" onClick={() => onSelectPlayer(player.playerId, category.playerType === "hitter" ? "hitters" : "pitchers")}>{player.playerName}</button>
                   <div className="text-xs text-slate-400">{player.teamCode}</div>
                 </div>
               </div>

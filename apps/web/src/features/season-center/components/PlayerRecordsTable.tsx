@@ -1,7 +1,7 @@
 import type { PlayerGroup, PlayerRecordRow } from "../../../types/records";
 import { PaginationControls } from "./PaginationControls";
 
-export function PlayerRecordsTable({ group, rows, page, totalPages, onPageChange }: { group: PlayerGroup; rows: PlayerRecordRow[]; page: number; totalPages: number; onPageChange: (page: number) => void }) {
+export function PlayerRecordsTable({ group, rows, page, pageSize, totalCount, totalPages, onPageChange, onPageSizeChange, onSelectPlayer }: { group: PlayerGroup; rows: PlayerRecordRow[]; page: number; pageSize: number; totalCount: number; totalPages: number; onPageChange: (page: number) => void; onPageSizeChange: (pageSize: number) => void; onSelectPlayer: (playerId: string, group: PlayerGroup) => void }) {
   return (
     <section className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
       <div className="overflow-x-auto">
@@ -36,7 +36,7 @@ export function PlayerRecordsTable({ group, rows, page, totalPages, onPageChange
             {rows.map((player) => (
               <tr key={player.playerId} className="border-t border-white/8">
                 <td className="px-4 py-4 font-semibold text-white">{player.rank}</td>
-                <td className="px-4 py-4 font-medium text-white">{player.playerName}</td>
+                <td className="px-4 py-4 font-medium text-white"><button type="button" className="hover:text-cyan-200" onClick={() => onSelectPlayer(player.playerId, group)}>{player.playerName}</button></td>
                 <td className="px-4 py-4">{player.teamCode}</td>
                 <td className="px-4 py-4 text-right">{player.games}</td>
                 {group === "hitters" ? (
@@ -62,7 +62,7 @@ export function PlayerRecordsTable({ group, rows, page, totalPages, onPageChange
           </tbody>
         </table>
       </div>
-      <PaginationControls page={page} totalPages={totalPages} onChange={onPageChange} />
+      <PaginationControls page={page} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} onChange={onPageChange} onPageSizeChange={onPageSizeChange} />
     </section>
   );
 }

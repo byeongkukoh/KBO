@@ -1,5 +1,5 @@
 import type { GameDetail, PlayerSummary } from "../types/game";
-import type { LeaderboardPlayer, PlayerGroup, PlayerRecordRow, PlayerRecordsPage, SeasonSnapshot, SeriesCode, TeamStanding } from "../types/records";
+import type { LeaderboardPlayer, PlayerDetail, PlayerDetailLog, PlayerGroup, PlayerRecordRow, PlayerRecordsPage, SeasonSnapshot, SeriesCode, TeamStanding } from "../types/records";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api").replace(/\/$/, "");
 
@@ -120,6 +120,49 @@ type ApiPlayerRecordsPage = {
   items: ApiPlayerRecordRow[];
 };
 
+type ApiPlayerDetailLog = {
+  game_id: string;
+  game_date: string;
+  series_code: string;
+  stadium: string;
+  result: string;
+  opponent_team_code: string;
+  position_code?: string | null;
+  plate_appearances?: number | null;
+  at_bats?: number | null;
+  hits?: number | null;
+  doubles?: number | null;
+  triples?: number | null;
+  home_runs?: number | null;
+  stolen_bases?: number | null;
+  walks?: number | null;
+  runs_batted_in?: number | null;
+  strikeouts?: number | null;
+  innings_outs?: number | null;
+  innings_display?: string | null;
+  hits_allowed?: number | null;
+  walks_allowed?: number | null;
+  earned_runs?: number | null;
+  decision_code?: string | null;
+};
+
+type ApiPlayerDetail = {
+  player_key: string;
+  player_name: string;
+  team_code: string;
+  group: string;
+  season: number;
+  series_code: string | null;
+  qualified: boolean;
+  totals: Record<string, number | string>;
+  metrics: Record<string, number | null>;
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+  logs: ApiPlayerDetailLog[];
+};
+
 function adaptTeamStanding(team: ApiTeamStanding): TeamStanding {
   return {
     rank: team.rank,
@@ -199,6 +242,34 @@ function adaptPlayerRecordRow(player: ApiPlayerRecordRow): PlayerRecordRow {
   };
 }
 
+function adaptPlayerDetailLog(log: ApiPlayerDetailLog): PlayerDetailLog {
+  return {
+    gameId: log.game_id,
+    gameDate: log.game_date,
+    seriesCode: log.series_code,
+    stadium: log.stadium,
+    result: log.result,
+    opponentTeamCode: log.opponent_team_code,
+    positionCode: log.position_code ?? undefined,
+    plateAppearances: log.plate_appearances ?? undefined,
+    atBats: log.at_bats ?? undefined,
+    hits: log.hits ?? undefined,
+    doubles: log.doubles ?? undefined,
+    triples: log.triples ?? undefined,
+    homeRuns: log.home_runs ?? undefined,
+    stolenBases: log.stolen_bases ?? undefined,
+    walks: log.walks ?? undefined,
+    runsBattedIn: log.runs_batted_in ?? undefined,
+    strikeouts: log.strikeouts ?? undefined,
+    inningsOuts: log.innings_outs ?? undefined,
+    inningsDisplay: log.innings_display ?? undefined,
+    hitsAllowed: log.hits_allowed ?? undefined,
+    walksAllowed: log.walks_allowed ?? undefined,
+    earnedRuns: log.earned_runs ?? undefined,
+    decisionCode: log.decision_code ?? undefined,
+  };
+}
+
 export async function getSeasons(): Promise<number[]> {
   const response = await requestJson<ApiSeasonList>("/seasons");
   return response.seasons;
@@ -244,5 +315,39 @@ export async function getSeasonPlayerRecords(options: {
     totalPages: response.total_pages,
     snapshotLabel: response.snapshot_label,
     items: response.items.map(adaptPlayerRecordRow),
+  };
+}
+
+export async function getPlayerSeasonDetail(options: {
+  playerKey: string;
+  season: number;
+  seriesCode: SeriesCode;
+  group: PlayerGroup;
+  page: number;
+  pageSize: number;
+}): Promise<PlayerDetail> {
+  const params = new URLSearchParams({
+    season: String(options.season),
+    series_code: options.seriesCode,
+    group: options.group,
+    page: String(options.page),
+    page_size: String(options.pageSize),
+  });
+  const response = await requestJson<ApiPlayerDetail>(`/players/${encodeURIComponent(options.playerKey)}/season-detail?${params.toString()}`);
+  return {
+    playerKey: response.player_key,
+    playerName: response.player_name,
+    teamCode: response.team_code,
+    group: response.group as PlayerGroup,
+    season: response.season,
+    seriesCode: response.series_code === null ? undefined : (response.series_code as SeriesCode),
+    qualified: response.qualified,
+    totals: response.totals,
+    metrics: response.metrics,
+    page: response.page,
+    pageSize: response.page_size,
+    totalCount: response.total_count,
+    totalPages: response.total_pages,
+    logs: response.logs.map(adaptPlayerDetailLog),
   };
 }
