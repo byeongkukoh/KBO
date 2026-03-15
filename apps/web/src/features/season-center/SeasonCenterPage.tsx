@@ -21,6 +21,15 @@ function selectDefaultSeason(seasons: number[]): number | null {
   return seasons[0];
 }
 
+function buildFreshnessLabel(data: { latestGameDate?: string; lastSuccessfulSyncAt?: string; contextUpdatedAt?: string } | undefined) {
+  if (!data) return "동기화 정보 없음";
+  const parts = [];
+  if (data.latestGameDate) parts.push(`데이터 기준일 ${data.latestGameDate}`);
+  if (data.lastSuccessfulSyncAt) parts.push(`마지막 적재 ${data.lastSuccessfulSyncAt}`);
+  if (data.contextUpdatedAt) parts.push(`컨텍스트 갱신 ${data.contextUpdatedAt}`);
+  return parts.join(" · ") || "동기화 정보 없음";
+}
+
 export function SeasonCenterPage() {
   const initialUrlState = readUrlState();
   const [view, setView] = useState<AppView>(initialUrlState.view);
@@ -44,6 +53,8 @@ export function SeasonCenterPage() {
   const [gameDetail, setGameDetail] = useState<GameDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const activeFreshness = snapshot?.freshness ?? playerDetail?.freshness ?? teamDetail?.freshness ?? gamesPage?.freshness ?? gameDetail?.freshness;
 
   useEffect(() => {
     writeUrlState({
@@ -254,6 +265,7 @@ export function SeasonCenterPage() {
         <div className="min-w-0 flex-1">
           <div className="mb-6 rounded-[28px] border border-white/8 bg-white/[0.03] px-5 py-4 text-sm leading-6 text-slate-300 shadow-[0_20px_80px_rgba(2,6,23,0.28)]">
             <span className="font-semibold text-white">DB snapshot</span> 기준 데이터입니다. 현재는 PostgreSQL에 적재된 실제 2025 시즌 실데이터를 기준으로 시리즈별 집계를 보여줍니다.
+            <div className="mt-2 text-xs text-slate-400">{buildFreshnessLabel(activeFreshness)}</div>
           </div>
           {isLoading ? <div className="rounded-[28px] border border-white/10 bg-white/4 px-6 py-10 text-slate-300">시즌 데이터를 불러오는 중입니다...</div> : null}
           {!isLoading && error ? <div className="rounded-[28px] border border-rose-300/20 bg-rose-300/10 px-6 py-10 text-rose-100">{error}</div> : null}

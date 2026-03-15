@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+const freshness = {
+  latest_game_date: "2025-10-04",
+  last_successful_sync_at: "2026-03-15T15:00:00+09:00",
+  context_updated_at: "2026-03-15T15:05:00+09:00",
+};
+
 test("renders db-backed standings and player records", async ({ page }) => {
   await page.route("http://127.0.0.1:8000/api/seasons", async (route) => {
     await route.fulfill({ json: { seasons: [2025] } });
@@ -10,6 +16,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
       json: {
         season: 2025,
         snapshot_label: "2025-10-04 regular db snapshot",
+        freshness,
         standings: [
           {
             rank: 1,
@@ -135,6 +142,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
       json: {
         season: 2025,
         series_code: "regular",
+        freshness,
         team_code: "LG",
         team_name: "LG 트윈스",
         wins: 85,
@@ -178,6 +186,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
         series_code: "regular",
         team_code: null,
         game_date: null,
+        freshness,
         page: 1,
         page_size: 25,
         total_count: 2,
@@ -223,6 +232,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
         home_team_code: "LG",
         away_score: 3,
         home_score: 5,
+        freshness,
         innings: [
           { inning_no: 1, away_runs: 1, home_runs: 0 },
           { inning_no: 2, away_runs: 0, home_runs: 2 },
@@ -253,6 +263,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
           total_count: 2,
           total_pages: 1,
           snapshot_label: "2025-10-04 regular db snapshot",
+          freshness,
           items: [
             {
               rank: 1,
@@ -320,6 +331,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
         total_count: 2,
         total_pages: 1,
         snapshot_label: "2025-10-04 regular db snapshot",
+        freshness,
         items: [
           {
             rank: 1,
@@ -404,6 +416,7 @@ test("renders db-backed standings and player records", async ({ page }) => {
         page_size: 25,
         total_count: 2,
         total_pages: 1,
+        freshness,
         seasons: [
           {
             season: 2025,
