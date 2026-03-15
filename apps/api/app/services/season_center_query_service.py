@@ -3,7 +3,7 @@ from collections import defaultdict
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Game, PlayerGameBattingStat, PlayerGamePitchingStat, TeamGameStat
+from app.models import AdvancedMetricConstant, Game, LeagueSeasonBattingContext, LeagueSeasonPitchingContext, PlayerGameBattingStat, PlayerGamePitchingStat, TeamGameStat
 from app.services.season_center import (
     LeaderboardPlayerSnapshot,
     PlayerBattingAccumulator,
@@ -28,7 +28,15 @@ def get_season_center_snapshot(session: Session, season: int, series_code: str |
 
     team_accumulators, batting, pitching = _accumulate_games(games)
     standings = build_team_standings(team_accumulators)
-    players = _build_snapshot_players(batting, pitching, {item.team_code: item.games for item in standings})
+    batting_context, pitching_context, constants = _load_metric_context(session, season=season, series_code=series_code)
+    players = _build_snapshot_players(
+        batting,
+        pitching,
+        {item.team_code: item.games for item in standings},
+        batting_context=batting_context,
+        pitching_context=pitching_context,
+        constants=constants,
+    )
     latest_date = max(game.game_date for game in games)
 
     return SeasonCenterSnapshot(
@@ -176,7 +184,19 @@ def _build_snapshot_players(
     batting: dict[str, PlayerBattingAccumulator],
     pitching: dict[str, PlayerPitchingAccumulator],
     team_games_by_code: dict[str, int],
+    batting_context: LeagueSeasonBattingContext | None,
+    pitching_context: LeagueSeasonPitchingContext | None,
+    constants: dict[str, float],
 ) -> list[LeaderboardPlayerSnapshot]:
     from app.services.season_center.player_records import build_player_snapshots
 
-    return build_player_snapshots(batting, pitching, team_games_by_code)
+    return build_player_snapshots(batting, pitching, team_games_by_code, batting_context=batting_context, pitching_context=pitching_context, constants=constants)
+
+
+def _load_metric_context(session: Session, season: int, series_code: str | None) -> tuple[LeagueSeasonBattingContext | None, LeagueSeasonPitchingContext | None, dict[str, float]]:
+    resolved_series = series_code or "regular"
+    batting_context = session.execute(select(LeagueSeasonBattingContext).where(LeagueSeasonBattingContext.season_id == season, LeagueSeasonBattingContext.series_code == resolved_series)).scalar_one_or_none()
+    pitching_context = session.execute(select(LeagueSeasonPitchingContext).where(LeagueSeasonPitchingContext.season_id == season, LeagueSeasonPitchingContext.series_code == resolved_series)).scalar_one_or_none()
+    constants_rows = session.execute(select(AdvancedMetricConstant).where(AdvancedMetricConstant.season_id == season, AdvancedMetricConstant.series_code == resolved_series)).scalars().all()
+    constants = {row.metric_code: row.metric_value for row in constants_rows}
+    return batting_context, pitching_context, constants

@@ -18,6 +18,7 @@ class BattingTotals:
     walks: int
     hit_by_pitch: int
     sacrifice_flies: int
+    intentional_walks: int = 0
 
 
 @dataclass(slots=True)
@@ -26,6 +27,8 @@ class PitchingTotals:
     hits_allowed: int
     walks_allowed: int
     strikeouts: int
+    hit_by_pitch_allowed: int = 0
+    home_runs_allowed: int = 0
 
 
 def derive_batting_metrics(totals: BattingTotals) -> dict[str, float | int | None]:
@@ -75,3 +78,50 @@ def derive_pitching_metrics(totals: PitchingTotals) -> dict[str, float | None]:
         "bb_per_9": bb_per_9,
         "kbb": kbb,
     }
+
+
+def derive_woba_metrics(
+    totals: BattingTotals,
+    *,
+    unintentional_walk_weight: float,
+    hit_by_pitch_weight: float,
+    single_weight: float,
+    double_weight: float,
+    triple_weight: float,
+    home_run_weight: float,
+    woba_scale: float,
+    league_woba: float,
+    league_runs_per_pa: float,
+) -> dict[str, float | None]:
+    singles = max(totals.hits - totals.doubles - totals.triples - totals.home_runs, 0)
+    unintentional_walks = max(totals.walks - totals.intentional_walks, 0)
+    denominator = totals.at_bats + unintentional_walks + totals.hit_by_pitch + totals.sacrifice_flies
+    numerator = (
+        unintentional_walk_weight * unintentional_walks
+        + hit_by_pitch_weight * totals.hit_by_pitch
+        + single_weight * singles
+        + double_weight * totals.doubles
+        + triple_weight * totals.triples
+        + home_run_weight * totals.home_runs
+    )
+    woba = safe_ratio(numerator, denominator)
+    plate_appearances = totals.at_bats + totals.walks + totals.hit_by_pitch + totals.sacrifice_flies
+    if woba is None or plate_appearances == 0:
+        return {"woba": None, "wrc": None, "wrc_plus": None}
+
+    wraa = ((woba - league_woba) / woba_scale) * plate_appearances
+    wrc = wraa + (league_runs_per_pa * plate_appearances)
+    wrc_plus = (((wraa / plate_appearances) + league_runs_per_pa) / league_runs_per_pa) * 100 if league_runs_per_pa > 0 else None
+    return {
+        "woba": round(woba, 3),
+        "wrc": round(wrc, 1),
+        "wrc_plus": round(wrc_plus, 1) if wrc_plus is not None else None,
+    }
+
+
+def derive_fip_metric(totals: PitchingTotals, *, fip_constant: float) -> float | None:
+    innings = totals.innings_outs / 3
+    if innings == 0:
+        return None
+    raw_fip = ((13 * totals.home_runs_allowed) + (3 * (totals.walks_allowed + totals.hit_by_pitch_allowed)) - (2 * totals.strikeouts)) / innings
+    return round(raw_fip + fip_constant, 3)

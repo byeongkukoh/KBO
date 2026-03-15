@@ -47,6 +47,9 @@ class LeaderboardPlayerSnapshot:
     babip: float | None
     bb_rate: float | None
     k_rate: float | None
+    woba: float | None
+    wrc: float | None
+    wrc_plus: float | None
     era: float | None
     strikeouts: int | None
     wins: int | None
@@ -54,6 +57,7 @@ class LeaderboardPlayerSnapshot:
     k_per_9: float | None
     bb_per_9: float | None
     kbb: float | None
+    fip: float | None
     qualified_hitter: bool
     qualified_pitcher: bool
 
@@ -80,6 +84,9 @@ class PlayerRecordRow:
     babip: float | None
     bb_rate: float | None
     k_rate: float | None
+    woba: float | None
+    wrc: float | None
+    wrc_plus: float | None
     era: float | None
     strikeouts: int | None
     wins: int | None
@@ -87,6 +94,7 @@ class PlayerRecordRow:
     k_per_9: float | None
     bb_per_9: float | None
     kbb: float | None
+    fip: float | None
     qualified_hitter: bool
     qualified_pitcher: bool
 

@@ -3,8 +3,8 @@ from math import ceil
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Game, PlayerGameBattingStat, PlayerGamePitchingStat
-from app.services.derived_stats import BattingTotals, PitchingTotals, derive_batting_metrics, derive_pitching_metrics
+from app.models import AdvancedMetricConstant, Game, LeagueSeasonBattingContext, LeagueSeasonPitchingContext, PlayerGameBattingStat, PlayerGamePitchingStat
+from app.services.derived_stats import BattingTotals, PitchingTotals, derive_batting_metrics, derive_fip_metric, derive_pitching_metrics, derive_woba_metrics
 from app.services.season_center.player_records import format_innings_display
 
 
@@ -48,6 +48,8 @@ def _build_hitter_season_rows(session: Session, player_key: str) -> list[dict[st
             sacrifice_flies=sum(item.sacrifice_flies for item in items),
         )
         metrics = derive_batting_metrics(totals)
+        batting_context, _, constants = _load_metric_context(session, season_id, None)
+        advanced_metrics = _derive_hitter_advanced_metrics(totals, batting_context, constants)
         season_rows.append(
             {
                 "season": season_id,
@@ -64,6 +66,9 @@ def _build_hitter_season_rows(session: Session, player_key: str) -> list[dict[st
                 "babip": metrics["babip"],
                 "bb_rate": metrics["bb_rate"],
                 "k_rate": metrics["k_rate"],
+                "woba": advanced_metrics["woba"],
+                "wrc": advanced_metrics["wrc"],
+                "wrc_plus": advanced_metrics["wrc_plus"],
             }
         )
     return season_rows
@@ -90,6 +95,7 @@ def _build_pitcher_season_rows(session: Session, player_key: str) -> list[dict[s
             strikeouts=sum(item.strikeouts for item in items),
         )
         metrics = derive_pitching_metrics(totals)
+        _, pitching_context, constants = _load_metric_context(session, season_id, None)
         season_rows.append(
             {
                 "season": season_id,
@@ -105,6 +111,7 @@ def _build_pitcher_season_rows(session: Session, player_key: str) -> list[dict[s
                 "k_per_9": metrics["k_per_9"],
                 "bb_per_9": metrics["bb_per_9"],
                 "kbb": metrics["kbb"],
+                "fip": _derive_pitcher_fip(totals, pitching_context, constants),
             }
         )
     return season_rows
@@ -138,6 +145,8 @@ def _get_hitter_detail(session: Session, player_key: str, season: int, series_co
         sacrifice_flies=sum(item.sacrifice_flies for item in rows),
     )
     metrics = derive_batting_metrics(totals)
+    batting_context, _, constants = _load_metric_context(session, season, series_code)
+    advanced_metrics = _derive_hitter_advanced_metrics(totals, batting_context, constants)
     total_count = len(rows)
     total_pages = max(1, ceil(total_count / page_size))
     current_page = min(max(page, 1), total_pages)
@@ -164,7 +173,7 @@ def _get_hitter_detail(session: Session, player_key: str, season: int, series_co
             "walks": totals.walks,
             "runs_batted_in": sum(item.runs_batted_in for item in rows),
         },
-        "metrics": metrics,
+        "metrics": {**metrics, **advanced_metrics},
         "page": current_page,
         "page_size": page_size,
         "total_count": total_count,
@@ -218,6 +227,8 @@ def _get_pitcher_detail(session: Session, player_key: str, season: int, series_c
         strikeouts=sum(item.strikeouts for item in rows),
     )
     metrics = derive_pitching_metrics(totals)
+    _, pitching_context, constants = _load_metric_context(session, season, series_code)
+    fip = _derive_pitcher_fip(totals, pitching_context, constants)
     total_count = len(rows)
     total_pages = max(1, ceil(total_count / page_size))
     current_page = min(max(page, 1), total_pages)
@@ -241,7 +252,7 @@ def _get_pitcher_detail(session: Session, player_key: str, season: int, series_c
             "wins": sum(1 for item in rows if item.decision_code == "승"),
             "earned_runs": sum(item.earned_runs for item in rows),
         },
-        "metrics": metrics,
+        "metrics": {**metrics, "fip": fip},
         "page": current_page,
         "page_size": page_size,
         "total_count": total_count,
@@ -291,3 +302,35 @@ def _game_result_for_team(game: Game, team_code: str) -> str:
 
 def _opponent_team_code(game: Game, team_code: str) -> str:
     return game.away_team.team_code if game.home_team.team_code == team_code else game.home_team.team_code
+
+
+def _load_metric_context(session: Session, season: int, series_code: str | None) -> tuple[LeagueSeasonBattingContext | None, LeagueSeasonPitchingContext | None, dict[str, float]]:
+    resolved_series = series_code or "regular"
+    batting = session.execute(select(LeagueSeasonBattingContext).where(LeagueSeasonBattingContext.season_id == season, LeagueSeasonBattingContext.series_code == resolved_series)).scalar_one_or_none()
+    pitching = session.execute(select(LeagueSeasonPitchingContext).where(LeagueSeasonPitchingContext.season_id == season, LeagueSeasonPitchingContext.series_code == resolved_series)).scalar_one_or_none()
+    constants_rows = session.execute(select(AdvancedMetricConstant).where(AdvancedMetricConstant.season_id == season, AdvancedMetricConstant.series_code == resolved_series)).scalars().all()
+    constants = {row.metric_code: row.metric_value for row in constants_rows}
+    return batting, pitching, constants
+
+
+def _derive_hitter_advanced_metrics(totals: BattingTotals, batting_context: LeagueSeasonBattingContext | None, constants: dict[str, float]) -> dict[str, float | None]:
+    if batting_context is None or batting_context.plate_appearances == 0:
+        return {"woba": None, "wrc": None, "wrc_plus": None}
+    return derive_woba_metrics(
+        totals,
+        unintentional_walk_weight=constants.get("WOBA_U_BB_WEIGHT", 0.69),
+        hit_by_pitch_weight=constants.get("WOBA_HBP_WEIGHT", 0.72),
+        single_weight=constants.get("WOBA_1B_WEIGHT", 0.89),
+        double_weight=constants.get("WOBA_2B_WEIGHT", 1.27),
+        triple_weight=constants.get("WOBA_3B_WEIGHT", 1.62),
+        home_run_weight=constants.get("WOBA_HR_WEIGHT", 2.10),
+        woba_scale=constants.get("WOBA_SCALE", 1.25),
+        league_woba=constants.get("LEAGUE_WOBA", batting_context.ops or 0.0),
+        league_runs_per_pa=constants.get("LEAGUE_R_PER_PA", batting_context.runs_scored / batting_context.plate_appearances),
+    )
+
+
+def _derive_pitcher_fip(totals: PitchingTotals, pitching_context: LeagueSeasonPitchingContext | None, constants: dict[str, float]) -> float | None:
+    if pitching_context is None:
+        return None
+    return derive_fip_metric(totals, fip_constant=constants.get("FIP_CONSTANT", 0.0))

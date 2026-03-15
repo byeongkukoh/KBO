@@ -1,6 +1,7 @@
 from math import ceil
 
-from app.services.derived_stats import BattingTotals, PitchingTotals, derive_batting_metrics, derive_pitching_metrics, safe_ratio
+from app.models import LeagueSeasonBattingContext, LeagueSeasonPitchingContext
+from app.services.derived_stats import BattingTotals, PitchingTotals, derive_batting_metrics, derive_fip_metric, derive_pitching_metrics, derive_woba_metrics, safe_ratio
 from app.services.season_center.types import LeaderboardPlayerSnapshot, PlayerBattingAccumulator, PlayerPitchingAccumulator, PlayerRecordRow, PlayerRecordsPage
 
 HITTER_SORT_KEYS = {"avg", "hits", "doubles", "homeRuns", "stolenBases", "ops", "iso", "babip", "bbRate", "kRate"}
@@ -11,23 +12,27 @@ def build_player_snapshots(
     batting: dict[str, PlayerBattingAccumulator],
     pitching: dict[str, PlayerPitchingAccumulator],
     team_games_by_code: dict[str, int],
+    batting_context: LeagueSeasonBattingContext | None = None,
+    pitching_context: LeagueSeasonPitchingContext | None = None,
+    constants: dict[str, float] | None = None,
 ) -> list[LeaderboardPlayerSnapshot]:
     snapshots: list[LeaderboardPlayerSnapshot] = []
 
     for accumulator in batting.values():
-        batting_metrics = derive_batting_metrics(
-            BattingTotals(
-                at_bats=accumulator.at_bats,
-                hits=accumulator.hits,
-                doubles=accumulator.doubles,
-                triples=accumulator.triples,
-                home_runs=accumulator.home_runs,
-                strikeouts=accumulator.strikeouts,
-                walks=accumulator.walks,
-                hit_by_pitch=accumulator.hit_by_pitch,
-                sacrifice_flies=accumulator.sacrifice_flies,
-            )
+        batting_totals = BattingTotals(
+            at_bats=accumulator.at_bats,
+            hits=accumulator.hits,
+            doubles=accumulator.doubles,
+            triples=accumulator.triples,
+            home_runs=accumulator.home_runs,
+            strikeouts=accumulator.strikeouts,
+            walks=accumulator.walks,
+            intentional_walks=0,
+            hit_by_pitch=accumulator.hit_by_pitch,
+            sacrifice_flies=accumulator.sacrifice_flies,
         )
+        batting_metrics = derive_batting_metrics(batting_totals)
+        advanced_batting = _derive_advanced_batting(batting_totals, batting_context, constants)
         team_games = team_games_by_code.get(accumulator.team_code, 0)
         qualified_hitter = accumulator.plate_appearances >= team_games * 3.1 if team_games > 0 else False
         snapshots.append(
@@ -48,6 +53,9 @@ def build_player_snapshots(
                 babip=cast_float(batting_metrics["babip"]),
                 bb_rate=cast_float(batting_metrics["bb_rate"]),
                 k_rate=cast_float(batting_metrics["k_rate"]),
+                woba=cast_float(advanced_batting["woba"]),
+                wrc=cast_float(advanced_batting["wrc"]),
+                wrc_plus=cast_float(advanced_batting["wrc_plus"]),
                 era=None,
                 strikeouts=None,
                 wins=None,
@@ -55,6 +63,7 @@ def build_player_snapshots(
                 k_per_9=None,
                 bb_per_9=None,
                 kbb=None,
+                fip=None,
                 qualified_hitter=qualified_hitter,
                 qualified_pitcher=False,
             )
@@ -68,9 +77,12 @@ def build_player_snapshots(
                 innings_outs=accumulator.innings_outs,
                 hits_allowed=accumulator.hits_allowed,
                 walks_allowed=accumulator.walks_allowed,
+                hit_by_pitch_allowed=0,
                 strikeouts=accumulator.strikeouts,
+                home_runs_allowed=0,
             )
         )
+        advanced_pitching = _derive_advanced_pitching(accumulator, pitching_context, constants)
         snapshots.append(
             LeaderboardPlayerSnapshot(
                 player_id=accumulator.player_id,
@@ -89,6 +101,9 @@ def build_player_snapshots(
                 babip=None,
                 bb_rate=None,
                 k_rate=None,
+                woba=None,
+                wrc=None,
+                wrc_plus=None,
                 era=safe_ratio(accumulator.earned_runs * 27, accumulator.innings_outs),
                 strikeouts=accumulator.strikeouts,
                 wins=accumulator.wins,
@@ -96,6 +111,7 @@ def build_player_snapshots(
                 k_per_9=cast_float(pitching_metrics["k_per_9"]),
                 bb_per_9=cast_float(pitching_metrics["bb_per_9"]),
                 kbb=cast_float(pitching_metrics["kbb"]),
+                fip=cast_float(advanced_pitching["fip"]),
                 qualified_hitter=False,
                 qualified_pitcher=qualified_pitcher,
             )
@@ -201,6 +217,9 @@ def _sort_and_rank(players: list[LeaderboardPlayerSnapshot], group: str, sort_ke
                 babip=player.babip,
                 bb_rate=player.bb_rate,
                 k_rate=player.k_rate,
+                woba=player.woba,
+                wrc=player.wrc,
+                wrc_plus=player.wrc_plus,
                 era=player.era,
                 strikeouts=player.strikeouts,
                 wins=player.wins,
@@ -208,6 +227,7 @@ def _sort_and_rank(players: list[LeaderboardPlayerSnapshot], group: str, sort_ke
                 k_per_9=player.k_per_9,
                 bb_per_9=player.bb_per_9,
                 kbb=player.kbb,
+                fip=player.fip,
                 qualified_hitter=player.qualified_hitter,
                 qualified_pitcher=player.qualified_pitcher,
             )
@@ -227,6 +247,9 @@ def _player_sort_value(player: LeaderboardPlayerSnapshot, sort_key: str) -> floa
         "babip": player.babip,
         "bbRate": player.bb_rate,
         "kRate": player.k_rate,
+        "woba": player.woba,
+        "wrc": player.wrc,
+        "wrcPlus": player.wrc_plus,
         "era": player.era,
         "strikeouts": player.strikeouts,
         "wins": player.wins,
@@ -234,6 +257,7 @@ def _player_sort_value(player: LeaderboardPlayerSnapshot, sort_key: str) -> floa
         "kPer9": player.k_per_9,
         "bbPer9": player.bb_per_9,
         "kbb": player.kbb,
+        "fip": player.fip,
     }
     value = mapping.get(sort_key)
     return float(value) if value is not None else -1.0
@@ -243,6 +267,37 @@ def cast_float(value: float | int | None) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def _derive_advanced_batting(totals: BattingTotals, batting_context: LeagueSeasonBattingContext | None, constants: dict[str, float] | None) -> dict[str, float | None]:
+    if batting_context is None or constants is None or batting_context.plate_appearances == 0:
+        return {"woba": None, "wrc": None, "wrc_plus": None}
+    return derive_woba_metrics(
+        totals,
+        unintentional_walk_weight=constants.get("WOBA_U_BB_WEIGHT", 0.69),
+        hit_by_pitch_weight=constants.get("WOBA_HBP_WEIGHT", 0.72),
+        single_weight=constants.get("WOBA_1B_WEIGHT", 0.89),
+        double_weight=constants.get("WOBA_2B_WEIGHT", 1.27),
+        triple_weight=constants.get("WOBA_3B_WEIGHT", 1.62),
+        home_run_weight=constants.get("WOBA_HR_WEIGHT", 2.10),
+        woba_scale=constants.get("WOBA_SCALE", 1.25),
+        league_woba=constants.get("LEAGUE_WOBA", batting_context.ops or 0.0),
+        league_runs_per_pa=constants.get("LEAGUE_R_PER_PA", batting_context.runs_scored / batting_context.plate_appearances),
+    )
+
+
+def _derive_advanced_pitching(accumulator: PlayerPitchingAccumulator, pitching_context: LeagueSeasonPitchingContext | None, constants: dict[str, float] | None) -> dict[str, float | None]:
+    if constants is None:
+        return {"fip": None}
+    totals = PitchingTotals(
+        innings_outs=accumulator.innings_outs,
+        hits_allowed=accumulator.hits_allowed,
+        walks_allowed=accumulator.walks_allowed,
+        hit_by_pitch_allowed=0,
+        strikeouts=accumulator.strikeouts,
+        home_runs_allowed=0,
+    )
+    return {"fip": derive_fip_metric(totals, fip_constant=constants.get("FIP_CONSTANT", 0.0))}
 
 
 def _innings_outs_from_float(value: float | None) -> int | None:
