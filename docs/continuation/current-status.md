@@ -17,6 +17,7 @@
 - 시즌 센터 프론트/백엔드 구조를 기능 단위 모듈로 분리해 유지보수성을 개선했다.
 - 시즌 센터는 이제 URL query state, 전체 기록 페이지네이션, 선수 상세 페이지를 포함한 실제 탐색 흐름을 지원한다.
 - 시즌 센터 URL 구조는 `/seasons/:season`, `/seasons/:season/players`, `/seasons/:season/players/:playerKey` 기준으로 동작한다.
+- 시즌 센터와 선수 상세에 sabermetrics v1 지표가 추가되어 저위험 파생 지표를 실제 2025 시즌 데이터 기준으로 확인할 수 있다.
 
 ## Completed Planning Work
 
@@ -52,6 +53,10 @@
   - `GET /api/players/{player_key}/season-detail` 추가로 선수 상세 페이지에서 시즌 요약과 경기 로그 페이지네이션 제공
   - 시즌 센터에서 선수명 클릭 시 실제 player detail view 로 이동 가능
   - player detail 은 커리어 시즌 요약 테이블 + 선택 시즌 게임 로그 형태로 확장
+- sabermetrics v1 추가 완료
+  - 타자: `ISO`, `BABIP`, `BB%`, `K%`
+  - 투수: `WHIP`, `K/9`, `BB/9`, `K/BB`
+  - 시즌 snapshot, player-records, player-detail 응답과 프론트 전체 기록/선수 상세 화면에 공통 반영
 - 2025 실제 시즌 적재 완료
   - `python -m app.ingest.cli ingest-season --season 2025 --series-group preseason --series-group regular --series-group postseason --use-live --start-date 2025-03-01 --end-date 2025-10-31` 실행
   - 적재 결과: preseason 42경기, regular 720경기, postseason 16경기, 총 778경기 성공
@@ -101,6 +106,7 @@
 - 현재 프론트 standings/player records 화면은 실제 백엔드 season snapshot API를 기준으로 동작한다.
 - 시즌 센터 백엔드는 현재 DB-backed snapshot 응답에서 팀 `stolen_bases`, 투수 `wins`, 타자 `stolen_bases` 를 실제 집계로 반환한다.
 - 시즌 센터 백엔드는 현재 DB-backed snapshot/records 응답에서 `Games Back`, `WHIP`, `stolen_bases`, 투수 `wins` 를 실제 적재 데이터 기준으로 계산한다.
+- 시즌 센터 백엔드는 현재 DB-backed snapshot/records/detail 응답에서 sabermetrics v1 (`ISO`, `BABIP`, `BB%`, `K%`, `K/9`, `BB/9`, `K/BB`) 을 실제 적재 데이터 기준으로 계산한다.
 - 현재 player detail 페이지는 문서상의 장기 목표인 커리어 전체 타임라인 대신, 2025 실제 시즌 기준 요약 + 게임 로그 중심으로 먼저 제공한다.
 - player detail 은 현재 적재된 시즌 범위 안에서 커리어 시즌 요약을 보여주며, 현재 데이터셋 기준으로는 2025 시즌이 중심이다.
 - 2025 실제 시즌 적재는 현재 관측된 `ws` game list / scoreboard / boxscore 응답을 사용한 live path 로 수행되며, public HTML inventory 기반 전환은 후속 과제로 남아 있다.
@@ -123,8 +129,8 @@
 
 1. `ScoreBoard.aspx` 날짜 제어 방식을 더 확인해 HTML-first inventory를 완전 cutover 할 수 있는지 검증한다.
 2. 로컬 conda 환경에서 ingest CLI와 FastAPI 실행 절차를 문서화한다.
-3. season snapshot/player-records/player-detail API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
-4. 선수 식별자(`player_id`) 안정 연결 경로를 확보해 `player_key` 임시 정책을 고도화한다.
+3. 리그 평균/상수 데이터 적재 계층을 추가해 `wOBA`, `wRC`, `wRC+`, `OPS+`, `ERA+`, `FIP` 준비를 시작한다.
+4. season snapshot/player-records/player-detail API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
 
 ## Working Rule For Future Sessions
 
