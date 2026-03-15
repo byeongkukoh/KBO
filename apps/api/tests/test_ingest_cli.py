@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.db.session import get_session_factory
+from app.ingest.http_client import parse_scoreboard_inventory_html
 from app.ingest.orchestrators.ingest_game import ingest_single_game, _merge_batting_rows, _merge_pitching_rows
 from app.ingest.orchestrators import ingest_season as ingest_season_module
 from app.ingest.orchestrators.ingest_season import ingest_season
@@ -89,6 +90,9 @@ def test_ingest_season_filters_by_series_and_completed_state(monkeypatch: pytest
                 }
             return {"game": []}
 
+        def fetch_scoreboard_inventory(self, game_date: str) -> list[dict[str, str]]:
+            return [{"game_date": game_date, "game_id": "20250308HTLT0"}]
+
     def fake_ingest_single_game(*, session, game_date: str, game_id: str, fixture_dir: Path | None, use_live: bool) -> dict[str, str]:
         called.append((game_date, game_id))
         return {"status": "success", "game_id": game_id}
@@ -112,3 +116,18 @@ def test_ingest_season_filters_by_series_and_completed_state(monkeypatch: pytest
     assert summary.matched_games == 1
     assert summary.ingested_games == 1
     assert summary.failed_games == 0
+
+
+def test_parse_scoreboard_inventory_html_extracts_unique_game_ids() -> None:
+    html = """
+    <a href="/Schedule/GameCenter/Main.aspx?gameDate=20250415&gameId=20250415SSLG0&section=REVIEW">리뷰</a>
+    <a href="/Schedule/GameCenter/Main.aspx?gameDate=20250415&gameId=20250415SSLG0&section=REVIEW">중복</a>
+    <a href="/Schedule/GameCenter/Main.aspx?gameDate=20250415&gameId=20250415KTHT0&section=REVIEW">리뷰</a>
+    """
+
+    items = parse_scoreboard_inventory_html(html)
+
+    assert items == [
+        {"game_date": "20250415", "game_id": "20250415SSLG0"},
+        {"game_date": "20250415", "game_id": "20250415KTHT0"},
+    ]
