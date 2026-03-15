@@ -8,6 +8,7 @@ def test_derive_batting_metrics() -> None:
         doubles=1,
         triples=1,
         home_runs=1,
+        strikeouts=3,
         walks=2,
         hit_by_pitch=1,
         sacrifice_flies=1,
@@ -21,6 +22,10 @@ def test_derive_batting_metrics() -> None:
     assert metrics["obp"] == 0.571
     assert metrics["slg"] == 1.1
     assert metrics["ops"] == 1.671
+    assert metrics["iso"] == 0.6
+    assert metrics["babip"] == 0.571
+    assert metrics["bb_rate"] == 0.143
+    assert metrics["k_rate"] == 0.214
 
 
 def test_derive_pitching_metrics() -> None:
