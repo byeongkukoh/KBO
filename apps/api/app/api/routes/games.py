@@ -1,8 +1,10 @@
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.schemas.game_browse import GameListItemResponse, GameListResponse
+from app.services.game_browse_service import list_games
 from app.services.game_query_service import get_game_detail
 
 router = APIRouter(tags=["games"])
@@ -60,6 +62,30 @@ class GameDetailResponse(BaseModel):
     team_stats: list[TeamStatResponse]
     batting_rows: list[BattingRowResponse]
     pitching_rows: list[PitchingRowResponse]
+
+
+@router.get("/games", response_model=GameListResponse)
+def get_games(
+    season: int,
+    series_code: str | None = Query(default=None, pattern="^(preseason|regular|postseason)$"),
+    team_code: str | None = None,
+    game_date: str | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    session: Session = Depends(get_db),
+) -> GameListResponse:
+    payload = list_games(session, season=season, series_code=series_code, team_code=team_code, game_date=game_date, page=page, page_size=page_size)
+    return GameListResponse(
+        season=int(payload["season"]),
+        series_code=payload["series_code"],
+        team_code=payload["team_code"],
+        game_date=payload["game_date"],
+        page=int(payload["page"]),
+        page_size=int(payload["page_size"]),
+        total_count=int(payload["total_count"]),
+        total_pages=int(payload["total_pages"]),
+        items=[GameListItemResponse(**item) for item in payload["items"]],
+    )
 
 
 @router.get("/games/{game_id}", response_model=GameDetailResponse)
