@@ -130,6 +130,143 @@ test("renders db-backed standings and player records", async ({ page }) => {
     });
   });
 
+  await page.route(/http:\/\/127\.0\.0\.1:8000\/api\/seasons\/2025\/player-records.*/, async (route) => {
+    const url = new URL(route.request().url());
+    const group = url.searchParams.get("group");
+    if (group === "pitchers") {
+      await route.fulfill({
+        json: {
+          season: 2025,
+          series_code: "regular",
+          group: "pitchers",
+          sort_key: "era",
+          qualified_only: true,
+          page: 1,
+          page_size: 25,
+          total_count: 2,
+          total_pages: 1,
+          snapshot_label: "2025-10-04 regular db snapshot",
+          items: [
+            {
+              rank: 1,
+              player_type: "pitcher",
+              player_id: "ss-원태인",
+              player_name: "원태인",
+              team_code: "SS",
+              games: 29,
+              plate_appearances: null,
+              innings: 179.2,
+              innings_display: "179.2",
+              innings_outs: 539,
+              batting_avg: null,
+              hits: null,
+              doubles: null,
+              home_runs: null,
+              stolen_bases: null,
+              ops: null,
+              era: 2.81,
+              strikeouts: 164,
+              wins: 14,
+              whip: 1.06,
+              qualified_hitter: false,
+              qualified_pitcher: true,
+            },
+            {
+              rank: 2,
+              player_type: "pitcher",
+              player_id: "lg-엔스",
+              player_name: "엔스",
+              team_code: "LG",
+              games: 28,
+              plate_appearances: null,
+              innings: 171.1,
+              innings_display: "171.1",
+              innings_outs: 514,
+              batting_avg: null,
+              hits: null,
+              doubles: null,
+              home_runs: null,
+              stolen_bases: null,
+              ops: null,
+              era: 3.18,
+              strikeouts: 155,
+              wins: 13,
+              whip: 1.12,
+              qualified_hitter: false,
+              qualified_pitcher: true,
+            },
+          ],
+        },
+      });
+      return;
+    }
+
+    await route.fulfill({
+      json: {
+        season: 2025,
+        series_code: "regular",
+        group: "hitters",
+        sort_key: "avg",
+        qualified_only: true,
+        page: 1,
+        page_size: 25,
+        total_count: 2,
+        total_pages: 1,
+        snapshot_label: "2025-10-04 regular db snapshot",
+        items: [
+          {
+            rank: 1,
+            player_type: "hitter",
+            player_id: "lg-홍창기",
+            player_name: "홍창기",
+            team_code: "LG",
+            games: 128,
+            plate_appearances: 571,
+            innings: null,
+            innings_display: null,
+            innings_outs: null,
+            batting_avg: 0.344,
+            hits: 167,
+            doubles: 26,
+            home_runs: 13,
+            stolen_bases: 18,
+            ops: 0.923,
+            era: null,
+            strikeouts: null,
+            wins: null,
+            whip: null,
+            qualified_hitter: true,
+            qualified_pitcher: false,
+          },
+          {
+            rank: 2,
+            player_type: "hitter",
+            player_id: "nc-김주원",
+            player_name: "김주원",
+            team_code: "NC",
+            games: 132,
+            plate_appearances: 540,
+            innings: null,
+            innings_display: null,
+            innings_outs: null,
+            batting_avg: 0.291,
+            hits: 149,
+            doubles: 28,
+            home_runs: 10,
+            stolen_bases: 36,
+            ops: 0.812,
+            era: null,
+            strikeouts: null,
+            wins: null,
+            whip: null,
+            qualified_hitter: true,
+            qualified_pitcher: false,
+          },
+        ],
+      },
+    });
+  });
+
   await page.goto("/");
 
   await expect(page.getByText(/시즌 팀 순위/)).toBeVisible();
@@ -146,5 +283,6 @@ test("renders db-backed standings and player records", async ({ page }) => {
 
   await expect(page.getByText("전체 선수 기록")).toBeVisible();
   await page.getByRole("button", { name: "투수" }).click();
+  await expect(page.getByText("179.2")).toBeVisible();
   await expect(page.getByText("원태인")).toBeVisible();
 });
