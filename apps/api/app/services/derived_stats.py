@@ -14,6 +14,7 @@ class BattingTotals:
     doubles: int
     triples: int
     home_runs: int
+    strikeouts: int
     walks: int
     hit_by_pitch: int
     sacrifice_flies: int
@@ -30,6 +31,7 @@ class PitchingTotals:
 def derive_batting_metrics(totals: BattingTotals) -> dict[str, float | int | None]:
     singles = max(totals.hits - totals.doubles - totals.triples - totals.home_runs, 0)
     total_bases = singles + (totals.doubles * 2) + (totals.triples * 3) + (totals.home_runs * 4)
+    plate_appearances = totals.at_bats + totals.walks + totals.hit_by_pitch + totals.sacrifice_flies
     avg = safe_ratio(totals.hits, totals.at_bats)
     obp = safe_ratio(
         totals.hits + totals.walks + totals.hit_by_pitch,
@@ -37,14 +39,26 @@ def derive_batting_metrics(totals: BattingTotals) -> dict[str, float | int | Non
     )
     slg = safe_ratio(total_bases, totals.at_bats)
     ops = round(obp + slg, 3) if obp is not None and slg is not None else None
+    iso = round(slg - avg, 3) if slg is not None and avg is not None else None
+    babip = safe_ratio(
+        totals.hits - totals.home_runs,
+        totals.at_bats - totals.strikeouts - totals.home_runs + totals.sacrifice_flies,
+    )
+    bb_rate = safe_ratio(totals.walks, plate_appearances)
+    k_rate = safe_ratio(totals.strikeouts, plate_appearances)
 
     return {
+        "plate_appearances": plate_appearances,
         "singles": singles,
         "total_bases": total_bases,
         "avg": avg,
         "obp": obp,
         "slg": slg,
         "ops": ops,
+        "iso": iso,
+        "babip": babip,
+        "bb_rate": bb_rate,
+        "k_rate": k_rate,
     }
 
 

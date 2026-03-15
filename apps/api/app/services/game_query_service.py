@@ -29,6 +29,7 @@ def get_player_ingested_summary(session: Session, player_key: str) -> dict[str, 
             func.coalesce(func.sum(PlayerGameBattingStat.doubles), 0),
             func.coalesce(func.sum(PlayerGameBattingStat.triples), 0),
             func.coalesce(func.sum(PlayerGameBattingStat.home_runs), 0),
+            func.coalesce(func.sum(PlayerGameBattingStat.strikeouts), 0),
             func.coalesce(func.sum(PlayerGameBattingStat.walks), 0),
             func.coalesce(func.sum(PlayerGameBattingStat.hit_by_pitch), 0),
             func.coalesce(func.sum(PlayerGameBattingStat.sacrifice_flies), 0),
@@ -48,12 +49,12 @@ def get_player_ingested_summary(session: Session, player_key: str) -> dict[str, 
         ).where(PlayerGamePitchingStat.player_key == player_key)
     ).one()
 
-    batting_count = int(batting_row[9])
+    batting_count = int(batting_row[10])
     pitching_count = int(pitching_row[5])
     if batting_count == 0 and pitching_count == 0:
         return None
 
-    player_name = batting_row[8] or pitching_row[4] or player_key
+    player_name = batting_row[9] or pitching_row[4] or player_key
 
     batting_totals = BattingTotals(
         at_bats=int(batting_row[0]),
@@ -61,9 +62,10 @@ def get_player_ingested_summary(session: Session, player_key: str) -> dict[str, 
         doubles=int(batting_row[2]),
         triples=int(batting_row[3]),
         home_runs=int(batting_row[4]),
-        walks=int(batting_row[5]),
-        hit_by_pitch=int(batting_row[6]),
-        sacrifice_flies=int(batting_row[7]),
+        strikeouts=int(batting_row[5]),
+        walks=int(batting_row[6]),
+        hit_by_pitch=int(batting_row[7]),
+        sacrifice_flies=int(batting_row[8]),
     )
 
     pitching_totals = PitchingTotals(
