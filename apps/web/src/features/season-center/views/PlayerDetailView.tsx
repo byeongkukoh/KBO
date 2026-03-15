@@ -1,10 +1,13 @@
 import type { PlayerDetail, PlayerGroup, SeriesCode } from "../../../types/records";
+import { MonthlyTrendChart } from "../components/MonthlyTrendChart";
 import { PaginationControls } from "../components/PaginationControls";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { SeriesSelect } from "../components/SeriesSelect";
+import { useState } from "react";
 
 export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, onSeriesChange, detail, onBack, onPageChange, onPageSizeChange, onOpenGame }: { season: number; seasons: number[]; seriesCode: SeriesCode; onSeasonChange: (season: number) => void; onSeriesChange: (series: SeriesCode) => void; detail: PlayerDetail; onBack: () => void; onPageChange: (page: number) => void; onPageSizeChange: (pageSize: number) => void; onOpenGame: (gameId: string) => void }) {
   const isHitter = detail.group === "hitters";
+  const [monthlyStatKey, setMonthlyStatKey] = useState(isHitter ? "battingAvg" : "era");
 
   return (
     <section className="space-y-8">
@@ -31,6 +34,8 @@ export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, 
           </article>
         ))}
       </div>
+
+      <MonthlyTrendChart group={detail.group} splits={detail.monthlySplits} statKey={monthlyStatKey} onStatKeyChange={setMonthlyStatKey} />
 
       <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
         <div className="border-b border-white/10 px-5 py-5">

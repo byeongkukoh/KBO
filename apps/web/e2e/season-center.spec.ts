@@ -435,6 +435,11 @@ test("renders db-backed standings and player records", async ({ page }) => {
             whip: 1.06,
           },
         ],
+        monthly_splits: [
+          { month: 1, month_label: "1월", games: 0 },
+          { month: 2, month_label: "2월", games: 0 },
+          { month: 3, month_label: "3월", games: 1, innings_outs: 21, innings_display: "7.0", era: 1.286, whip: 0.714, k_per_9: 10.286, bb_per_9: 1.286, kbb: 8.0, fip: 2.91, strikeouts: 8, wins: 1 },
+        ],
         logs: [
           {
             game_id: "20251001SSLG0",
@@ -450,6 +455,43 @@ test("renders db-backed standings and player records", async ({ page }) => {
             strikeouts: 8,
             earned_runs: 1,
             decision_code: "승",
+          },
+        ],
+      },
+    });
+  });
+
+  await page.route(/http:\/\/127\.0\.0\.1:8000\/api\/players\/compare.*/, async (route) => {
+    await route.fulfill({
+      json: {
+        season: 2025,
+        series_code: "regular",
+        group: "pitchers",
+        freshness,
+        players: [
+          {
+            player_key: "ss-원태인",
+            player_name: "원태인",
+            team_code: "SS",
+            qualified: true,
+            metrics: { era: 2.81, whip: 1.06, kPer9: 8.23, bbPer9: 2.46, kbb: 3.35, fip: 3.11 },
+            monthly_splits: [
+              { month: 1, month_label: "1월", games: 0 },
+              { month: 2, month_label: "2월", games: 0 },
+              { month: 3, month_label: "3월", games: 1, era: 1.286, whip: 0.714, strikeouts: 8, wins: 1, fip: 2.91 },
+            ],
+          },
+          {
+            player_key: "lg-엔스",
+            player_name: "엔스",
+            team_code: "LG",
+            qualified: true,
+            metrics: { era: 3.18, whip: 1.12, kPer9: 8.14, bbPer9: 2.71, kbb: 3.0, fip: 3.44 },
+            monthly_splits: [
+              { month: 1, month_label: "1월", games: 0 },
+              { month: 2, month_label: "2월", games: 0 },
+              { month: 3, month_label: "3월", games: 1, era: 3.0, whip: 1.0, strikeouts: 7, wins: 1, fip: 3.3 },
+            ],
           },
         ],
       },
@@ -476,9 +518,12 @@ test("renders db-backed standings and player records", async ({ page }) => {
   await expect(page.getByText("전체 선수 기록")).toBeVisible();
   await page.getByRole("button", { name: "투수" }).click();
   await expect(page.getByText("179.2")).toBeVisible();
-  await expect(page.getByText("원태인")).toBeVisible();
+  await expect(page.getByRole("button", { name: "원태인" })).toBeVisible();
+  await page.getByRole("button", { name: "비교하기" }).click();
+  await expect(page.getByText("선수 비교")).toBeVisible();
   await page.getByRole("button", { name: "원태인" }).click();
   await expect(page.getByText("Player / Detail")).toBeVisible();
+  await expect(page.getByText("월별 추이")).toBeVisible();
   await expect(page.getByText("7.0")).toBeVisible();
 
   await page.getByRole("button", { name: "경기 기록" }).click();

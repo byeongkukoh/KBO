@@ -1,5 +1,5 @@
 import type { GameDetail, PlayerSummary } from "../types/game";
-import type { GameListItem, GameListPage, LeaderboardPlayer, PlayerDetail, PlayerDetailLog, PlayerGroup, PlayerRecordRow, PlayerRecordsPage, SeasonSnapshot, SeriesCode, TeamSeasonDetail, TeamStanding } from "../types/records";
+import type { GameListItem, GameListPage, LeaderboardPlayer, PlayerComparison, PlayerComparisonItem, PlayerDetail, PlayerDetailLog, PlayerGroup, PlayerMonthlySplit, PlayerRecordRow, PlayerRecordsPage, SeasonSnapshot, SeriesCode, TeamSeasonDetail, TeamStanding } from "../types/records";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api").replace(/\/$/, "");
 
@@ -196,7 +196,50 @@ type ApiPlayerDetail = {
   total_pages: number;
   freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
   seasons: Array<Record<string, string | number | boolean | null>>;
+  monthly_splits: ApiPlayerMonthlySplit[];
   logs: ApiPlayerDetailLog[];
+};
+
+type ApiPlayerMonthlySplit = {
+  month: number;
+  month_label: string;
+  games: number;
+  plate_appearances?: number | null;
+  innings_outs?: number | null;
+  innings_display?: string | null;
+  batting_avg?: number | null;
+  hits?: number | null;
+  home_runs?: number | null;
+  stolen_bases?: number | null;
+  ops?: number | null;
+  iso?: number | null;
+  babip?: number | null;
+  bb_rate?: number | null;
+  k_rate?: number | null;
+  woba?: number | null;
+  wrc?: number | null;
+  wrc_plus?: number | null;
+  era?: number | null;
+  whip?: number | null;
+  k_per_9?: number | null;
+  bb_per_9?: number | null;
+  kbb?: number | null;
+  fip?: number | null;
+};
+
+type ApiPlayerComparison = {
+  season: number;
+  series_code: string | null;
+  group: string;
+  freshness: { latest_game_date: string | null; last_successful_sync_at: string | null; context_updated_at: string | null };
+  players: Array<{
+    player_key: string;
+    player_name: string;
+    team_code: string;
+    qualified: boolean;
+    metrics: Record<string, number | null>;
+    monthly_splits: ApiPlayerMonthlySplit[];
+  }>;
 };
 
 type ApiTeamSeasonDetail = {
@@ -398,6 +441,35 @@ function adaptPlayerDetailLog(log: ApiPlayerDetailLog): PlayerDetailLog {
   };
 }
 
+function adaptPlayerMonthlySplit(split: ApiPlayerMonthlySplit): PlayerMonthlySplit {
+  return {
+    month: split.month,
+    monthLabel: split.month_label,
+    games: split.games,
+    plateAppearances: split.plate_appearances ?? undefined,
+    inningsOuts: split.innings_outs ?? undefined,
+    inningsDisplay: split.innings_display ?? undefined,
+    battingAvg: split.batting_avg ?? undefined,
+    hits: split.hits ?? undefined,
+    homeRuns: split.home_runs ?? undefined,
+    stolenBases: split.stolen_bases ?? undefined,
+    ops: split.ops ?? undefined,
+    iso: split.iso ?? undefined,
+    babip: split.babip ?? undefined,
+    bbRate: split.bb_rate ?? undefined,
+    kRate: split.k_rate ?? undefined,
+    woba: split.woba ?? undefined,
+    wrc: split.wrc ?? undefined,
+    wrcPlus: split.wrc_plus ?? undefined,
+    era: split.era ?? undefined,
+    whip: split.whip ?? undefined,
+    kPer9: split.k_per_9 ?? undefined,
+    bbPer9: split.bb_per_9 ?? undefined,
+    kbb: split.kbb ?? undefined,
+    fip: split.fip ?? undefined,
+  };
+}
+
 function adaptGameListItem(item: ApiGameListItem): GameListItem {
   return {
     gameId: item.game_id,
@@ -495,7 +567,41 @@ export async function getPlayerSeasonDetail(options: {
     totalPages: response.total_pages,
     freshness: adaptFreshness(response.freshness),
     seasons: response.seasons as Array<Record<string, string | number | boolean | null>>,
+    monthlySplits: response.monthly_splits.map(adaptPlayerMonthlySplit),
     logs: response.logs.map(adaptPlayerDetailLog),
+  };
+}
+
+export async function comparePlayers(options: {
+  playerKeys: string[];
+  season: number;
+  seriesCode: SeriesCode;
+  group: PlayerGroup;
+}): Promise<PlayerComparison> {
+  const params = new URLSearchParams({
+    season: String(options.season),
+    series_code: options.seriesCode,
+    group: options.group,
+  });
+  for (const key of options.playerKeys) {
+    params.append("player_key", key);
+  }
+  const response = await requestJson<ApiPlayerComparison>(`/players/compare?${params.toString()}`);
+  return {
+    season: response.season,
+    seriesCode: response.series_code === null ? undefined : (response.series_code as SeriesCode),
+    group: response.group as PlayerGroup,
+    freshness: adaptFreshness(response.freshness),
+    players: response.players.map(
+      (item): PlayerComparisonItem => ({
+        playerKey: item.player_key,
+        playerName: item.player_name,
+        teamCode: item.team_code,
+        qualified: item.qualified,
+        metrics: item.metrics,
+        monthlySplits: item.monthly_splits.map(adaptPlayerMonthlySplit),
+      }),
+    ),
   };
 }
 

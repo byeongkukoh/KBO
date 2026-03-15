@@ -164,6 +164,33 @@ export type PlayerDetailLog = {
   decisionCode?: string;
 };
 
+export type PlayerMonthlySplit = {
+  month: number;
+  monthLabel: string;
+  games: number;
+  plateAppearances?: number;
+  inningsOuts?: number;
+  inningsDisplay?: string;
+  battingAvg?: number;
+  hits?: number;
+  homeRuns?: number;
+  stolenBases?: number;
+  ops?: number;
+  iso?: number;
+  babip?: number;
+  bbRate?: number;
+  kRate?: number;
+  woba?: number;
+  wrc?: number;
+  wrcPlus?: number;
+  era?: number;
+  whip?: number;
+  kPer9?: number;
+  bbPer9?: number;
+  kbb?: number;
+  fip?: number;
+};
+
 export type PlayerDetail = {
   playerKey: string;
   playerName: string;
@@ -180,7 +207,25 @@ export type PlayerDetail = {
   totalPages: number;
   freshness: Freshness;
   seasons: Array<Record<string, string | number | boolean | null>>;
+  monthlySplits: PlayerMonthlySplit[];
   logs: PlayerDetailLog[];
+};
+
+export type PlayerComparisonItem = {
+  playerKey: string;
+  playerName: string;
+  teamCode: string;
+  qualified: boolean;
+  metrics: Record<string, number | null>;
+  monthlySplits: PlayerMonthlySplit[];
+};
+
+export type PlayerComparison = {
+  season: number;
+  seriesCode?: SeriesCode;
+  group: PlayerGroup;
+  freshness: Freshness;
+  players: PlayerComparisonItem[];
 };
 
 export type TeamSeasonDetail = {
