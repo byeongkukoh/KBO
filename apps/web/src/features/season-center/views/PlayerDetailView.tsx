@@ -3,7 +3,7 @@ import { PaginationControls } from "../components/PaginationControls";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { SeriesSelect } from "../components/SeriesSelect";
 
-export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, onSeriesChange, detail, onBack, onPageChange, onPageSizeChange }: { season: number; seasons: number[]; seriesCode: SeriesCode; onSeasonChange: (season: number) => void; onSeriesChange: (series: SeriesCode) => void; detail: PlayerDetail; onBack: () => void; onPageChange: (page: number) => void; onPageSizeChange: (pageSize: number) => void }) {
+export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, onSeriesChange, detail, onBack, onPageChange, onPageSizeChange, onOpenGame }: { season: number; seasons: number[]; seriesCode: SeriesCode; onSeasonChange: (season: number) => void; onSeriesChange: (series: SeriesCode) => void; detail: PlayerDetail; onBack: () => void; onPageChange: (page: number) => void; onPageSizeChange: (pageSize: number) => void; onOpenGame: (gameId: string) => void }) {
   const isHitter = detail.group === "hitters";
 
   return (
@@ -147,7 +147,7 @@ export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, 
             <tbody>
               {detail.logs.map((log) => (
                 <tr key={`${log.gameId}-${log.gameDate}`} className="border-t border-white/8">
-                  <td className="px-4 py-4">{log.gameDate}</td>
+                  <td className="px-4 py-4"><button type="button" className="hover:text-cyan-200" onClick={() => onOpenGame(log.gameId)}>{log.gameDate}</button></td>
                   <td className="px-4 py-4">{log.opponentTeamCode}</td>
                   <td className="px-4 py-4">{log.result}</td>
                   <td className="px-4 py-4">{log.stadium}</td>
