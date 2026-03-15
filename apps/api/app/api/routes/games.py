@@ -1,9 +1,12 @@
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from typing import Any, cast
 
 from app.db.session import get_db
+from app.schemas.freshness import FreshnessResponse
 from app.schemas.game_browse import GameListItemResponse, GameListResponse
+from app.services.freshness_service import get_scope_freshness
 from app.services.game_browse_service import list_games
 from app.services.game_query_service import get_game_detail
 
@@ -58,6 +61,7 @@ class GameDetailResponse(BaseModel):
     home_team_code: str
     away_score: int
     home_score: int
+    freshness: FreshnessResponse
     innings: list[InningScoreResponse]
     team_stats: list[TeamStatResponse]
     batting_rows: list[BattingRowResponse]
@@ -75,16 +79,19 @@ def get_games(
     session: Session = Depends(get_db),
 ) -> GameListResponse:
     payload = list_games(session, season=season, series_code=series_code, team_code=team_code, game_date=game_date, page=page, page_size=page_size)
+    payload_data = cast(dict[str, Any], payload)
+    freshness = get_scope_freshness(session, season=season, series_code=series_code)
     return GameListResponse(
-        season=int(payload["season"]),
-        series_code=payload["series_code"],
-        team_code=payload["team_code"],
-        game_date=payload["game_date"],
-        page=int(payload["page"]),
-        page_size=int(payload["page_size"]),
-        total_count=int(payload["total_count"]),
-        total_pages=int(payload["total_pages"]),
-        items=[GameListItemResponse(**item) for item in payload["items"]],
+        season=int(payload_data["season"]),
+        series_code=cast(str | None, payload_data["series_code"]),
+        team_code=cast(str | None, payload_data["team_code"]),
+        game_date=cast(str | None, payload_data["game_date"]),
+        page=int(payload_data["page"]),
+        page_size=int(payload_data["page_size"]),
+        total_count=int(payload_data["total_count"]),
+        total_pages=int(payload_data["total_pages"]),
+        freshness=FreshnessResponse(**freshness),
+        items=[GameListItemResponse(**cast(dict[str, Any], item)) for item in cast(list[dict[str, Any]], payload_data["items"])],
     )
 
 
@@ -93,6 +100,7 @@ def get_game(game_id: str, session: Session = Depends(get_db)) -> GameDetailResp
     game = get_game_detail(session, game_id)
     if game is None:
         raise HTTPException(status_code=404, detail="game not found")
+    freshness = get_scope_freshness(session, season=game.season_id, series_code=game.series_code)
 
     return GameDetailResponse(
         game_id=game.kbo_game_id,
@@ -103,6 +111,7 @@ def get_game(game_id: str, session: Session = Depends(get_db)) -> GameDetailResp
         home_team_code=game.home_team.team_code,
         away_score=game.away_score,
         home_score=game.home_score,
+        freshness=FreshnessResponse(**freshness),
         innings=[
             InningScoreResponse(inning_no=i.inning_no, away_runs=i.away_runs, home_runs=i.home_runs)
             for i in sorted(game.inning_scores, key=lambda x: x.inning_no)

@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.schemas.freshness import FreshnessResponse
+
 
 class GameListItemResponse(BaseModel):
     game_id: str
@@ -23,4 +25,5 @@ class GameListResponse(BaseModel):
     page_size: int
     total_count: int
     total_pages: int
+    freshness: FreshnessResponse
     items: list[GameListItemResponse]

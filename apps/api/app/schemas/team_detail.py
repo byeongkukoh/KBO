@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.schemas.freshness import FreshnessResponse
+
 
 class TeamRecentGameResponse(BaseModel):
     game_id: str
@@ -35,4 +37,5 @@ class TeamSeasonDetailResponse(BaseModel):
     era_plus: float | None
     last_ten: str
     streak: str
+    freshness: FreshnessResponse
     recent_games: list[TeamRecentGameResponse]

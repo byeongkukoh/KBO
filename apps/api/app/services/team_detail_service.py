@@ -1,4 +1,4 @@
-from sqlalchemy import Select, select
+from sqlalchemy import Select, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Game, LeagueSeasonBattingContext, LeagueSeasonPitchingContext, Team, TeamGameStat
@@ -13,7 +13,7 @@ def get_team_season_detail(session: Session, season: int, team_code: str, series
         return None
     stmt: Select[tuple[Game]] = (
         select(Game)
-        .where(Game.season_id == season)
+        .where(Game.season_id == season, or_(Game.away_team_id == team.id, Game.home_team_id == team.id))
         .options(
             selectinload(Game.away_team),
             selectinload(Game.home_team),
@@ -25,7 +25,7 @@ def get_team_season_detail(session: Session, season: int, team_code: str, series
     )
     if series_code is not None:
         stmt = stmt.where(Game.series_code == series_code)
-    games = [game for game in session.execute(stmt).scalars() if game.away_team_id == team.id or game.home_team_id == team.id]
+    games = list(session.execute(stmt).scalars())
     if not games:
         return None
 
