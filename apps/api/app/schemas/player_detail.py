@@ -29,6 +29,33 @@ class PlayerDetailLogResponse(BaseModel):
     decision_code: str | None = None
 
 
+class PlayerMonthlySplitResponse(BaseModel):
+    month: int
+    month_label: str
+    games: int
+    plate_appearances: int | None = None
+    innings_outs: int | None = None
+    innings_display: str | None = None
+    batting_avg: float | None = None
+    hits: int | None = None
+    home_runs: int | None = None
+    stolen_bases: int | None = None
+    ops: float | None = None
+    iso: float | None = None
+    babip: float | None = None
+    bb_rate: float | None = None
+    k_rate: float | None = None
+    woba: float | None = None
+    wrc: float | None = None
+    wrc_plus: float | None = None
+    era: float | None = None
+    whip: float | None = None
+    k_per_9: float | None = None
+    bb_per_9: float | None = None
+    kbb: float | None = None
+    fip: float | None = None
+
+
 class PlayerDetailResponse(BaseModel):
     player_key: str
     player_name: str
@@ -45,4 +72,22 @@ class PlayerDetailResponse(BaseModel):
     total_pages: int
     freshness: FreshnessResponse
     seasons: list[dict[str, int | float | str | bool | None]]
+    monthly_splits: list[PlayerMonthlySplitResponse]
     logs: list[PlayerDetailLogResponse]
+
+
+class PlayerComparisonItemResponse(BaseModel):
+    player_key: str
+    player_name: str
+    team_code: str
+    qualified: bool
+    metrics: dict[str, float | int | None]
+    monthly_splits: list[PlayerMonthlySplitResponse]
+
+
+class PlayerComparisonResponse(BaseModel):
+    season: int
+    series_code: str | None
+    group: str
+    freshness: FreshnessResponse
+    players: list[PlayerComparisonItemResponse]

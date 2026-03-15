@@ -1,3 +1,4 @@
+from collections import defaultdict
 from math import ceil
 
 from sqlalchemy import Select, func, or_, select
@@ -20,6 +21,40 @@ def get_player_season_detail(
     if group == "hitters":
         return _get_hitter_detail(session, player_key, season, series_code, page, page_size)
     return _get_pitcher_detail(session, player_key, season, series_code, page, page_size)
+
+
+def get_player_comparison(
+    session: Session,
+    player_keys: list[str],
+    season: int,
+    series_code: str | None,
+    group: str,
+) -> dict[str, object] | None:
+    if not player_keys:
+        return None
+    players: list[dict[str, object]] = []
+    for player_key in player_keys[:2]:
+        detail = get_player_season_detail(session, player_key, season, series_code, group, page=1, page_size=5)
+        if detail is None:
+            continue
+        players.append(
+            {
+                "player_key": detail["player_key"],
+                "player_name": detail["player_name"],
+                "team_code": detail["team_code"],
+                "qualified": detail["qualified"],
+                "metrics": detail["metrics"],
+                "monthly_splits": detail["monthly_splits"],
+            }
+        )
+    if not players:
+        return None
+    return {
+        "season": season,
+        "series_code": series_code,
+        "group": group,
+        "players": players,
+    }
 
 
 def _build_hitter_season_rows(session: Session, player_key: str) -> list[dict[str, int | float | str | bool | None]]:
@@ -179,6 +214,7 @@ def _get_hitter_detail(session: Session, player_key: str, season: int, series_co
         "total_count": total_count,
         "total_pages": total_pages,
         "seasons": _build_hitter_season_rows(session, player_key),
+        "monthly_splits": _build_hitter_monthly_splits(rows, batting_context, constants),
         "logs": [
             {
                 "game_id": item.game.kbo_game_id,
@@ -258,6 +294,7 @@ def _get_pitcher_detail(session: Session, player_key: str, season: int, series_c
         "total_count": total_count,
         "total_pages": total_pages,
         "seasons": _build_pitcher_season_rows(session, player_key),
+        "monthly_splits": _build_pitcher_monthly_splits(rows, pitching_context, constants),
         "logs": [
             {
                 "game_id": item.game.kbo_game_id,
@@ -316,17 +353,20 @@ def _load_metric_context(session: Session, season: int, series_code: str | None)
 def _derive_hitter_advanced_metrics(totals: BattingTotals, batting_context: LeagueSeasonBattingContext | None, constants: dict[str, float]) -> dict[str, float | None]:
     if batting_context is None or batting_context.plate_appearances == 0:
         return {"woba": None, "wrc": None, "wrc_plus": None}
+    league_runs_per_pa = constants.get("LEAGUE_R_PER_PA")
+    if league_runs_per_pa is None:
+        league_runs_per_pa = batting_context.runs_scored / batting_context.plate_appearances
     return derive_woba_metrics(
         totals,
-        unintentional_walk_weight=constants.get("WOBA_U_BB_WEIGHT", 0.69),
-        hit_by_pitch_weight=constants.get("WOBA_HBP_WEIGHT", 0.72),
-        single_weight=constants.get("WOBA_1B_WEIGHT", 0.89),
-        double_weight=constants.get("WOBA_2B_WEIGHT", 1.27),
-        triple_weight=constants.get("WOBA_3B_WEIGHT", 1.62),
-        home_run_weight=constants.get("WOBA_HR_WEIGHT", 2.10),
-        woba_scale=constants.get("WOBA_SCALE", 1.25),
-        league_woba=constants.get("LEAGUE_WOBA", batting_context.ops or 0.0),
-        league_runs_per_pa=constants.get("LEAGUE_R_PER_PA", batting_context.runs_scored / batting_context.plate_appearances),
+        unintentional_walk_weight=float(constants.get("WOBA_U_BB_WEIGHT", 0.69) or 0.69),
+        hit_by_pitch_weight=float(constants.get("WOBA_HBP_WEIGHT", 0.72) or 0.72),
+        single_weight=float(constants.get("WOBA_1B_WEIGHT", 0.89) or 0.89),
+        double_weight=float(constants.get("WOBA_2B_WEIGHT", 1.27) or 1.27),
+        triple_weight=float(constants.get("WOBA_3B_WEIGHT", 1.62) or 1.62),
+        home_run_weight=float(constants.get("WOBA_HR_WEIGHT", 2.10) or 2.10),
+        woba_scale=float(constants.get("WOBA_SCALE", 1.25) or 1.25),
+        league_woba=float(constants.get("LEAGUE_WOBA", batting_context.ops or 0.0) or 0.0),
+        league_runs_per_pa=float(league_runs_per_pa),
     )
 
 
@@ -334,3 +374,91 @@ def _derive_pitcher_fip(totals: PitchingTotals, pitching_context: LeagueSeasonPi
     if pitching_context is None:
         return None
     return derive_fip_metric(totals, fip_constant=constants.get("FIP_CONSTANT", 0.0))
+
+
+def _build_hitter_monthly_splits(rows: list[PlayerGameBattingStat], batting_context: LeagueSeasonBattingContext | None, constants: dict[str, float]) -> list[dict[str, int | float | str | None]]:
+    grouped: dict[int, list[PlayerGameBattingStat]] = defaultdict(list)
+    for row in rows:
+        grouped[row.game.game_date.month].append(row)
+
+    splits: list[dict[str, int | float | str | None]] = []
+    for month in range(1, 13):
+        month_rows = grouped.get(month, [])
+        if not month_rows:
+            splits.append({"month": month, "month_label": f"{month}월", "games": 0})
+            continue
+        totals = BattingTotals(
+            at_bats=sum(item.at_bats for item in month_rows),
+            hits=sum(item.hits for item in month_rows),
+            doubles=sum(item.doubles for item in month_rows),
+            triples=sum(item.triples for item in month_rows),
+            home_runs=sum(item.home_runs for item in month_rows),
+            strikeouts=sum(item.strikeouts for item in month_rows),
+            walks=sum(item.walks for item in month_rows),
+            intentional_walks=sum(item.intentional_walks for item in month_rows),
+            hit_by_pitch=sum(item.hit_by_pitch for item in month_rows),
+            sacrifice_flies=sum(item.sacrifice_flies for item in month_rows),
+        )
+        metrics = derive_batting_metrics(totals)
+        advanced = _derive_hitter_advanced_metrics(totals, batting_context, constants)
+        splits.append(
+            {
+                "month": month,
+                "month_label": f"{month}월",
+                "games": len(month_rows),
+                "plate_appearances": int(metrics["plate_appearances"] or 0),
+                "batting_avg": metrics["avg"],
+                "hits": totals.hits,
+                "home_runs": totals.home_runs,
+                "stolen_bases": sum(item.stolen_bases for item in month_rows),
+                "ops": metrics["ops"],
+                "iso": metrics["iso"],
+                "babip": metrics["babip"],
+                "bb_rate": metrics["bb_rate"],
+                "k_rate": metrics["k_rate"],
+                "woba": advanced["woba"],
+                "wrc": advanced["wrc"],
+                "wrc_plus": advanced["wrc_plus"],
+            }
+        )
+    return splits
+
+
+def _build_pitcher_monthly_splits(rows: list[PlayerGamePitchingStat], pitching_context: LeagueSeasonPitchingContext | None, constants: dict[str, float]) -> list[dict[str, int | float | str | None]]:
+    grouped: dict[int, list[PlayerGamePitchingStat]] = defaultdict(list)
+    for row in rows:
+        grouped[row.game.game_date.month].append(row)
+
+    splits: list[dict[str, int | float | str | None]] = []
+    for month in range(1, 13):
+        month_rows = grouped.get(month, [])
+        if not month_rows:
+            splits.append({"month": month, "month_label": f"{month}월", "games": 0})
+            continue
+        totals = PitchingTotals(
+            innings_outs=sum(item.innings_outs for item in month_rows),
+            hits_allowed=sum(item.hits_allowed for item in month_rows),
+            walks_allowed=sum(item.walks_allowed for item in month_rows),
+            hit_by_pitch_allowed=sum(item.hit_by_pitch_allowed for item in month_rows),
+            strikeouts=sum(item.strikeouts for item in month_rows),
+            home_runs_allowed=sum(item.home_runs_allowed for item in month_rows),
+        )
+        metrics = derive_pitching_metrics(totals)
+        splits.append(
+            {
+                "month": month,
+                "month_label": f"{month}월",
+                "games": len(month_rows),
+                "innings_outs": totals.innings_outs,
+                "innings_display": format_innings_display(totals.innings_outs),
+                "era": round(sum(item.earned_runs for item in month_rows) * 27 / totals.innings_outs, 3) if totals.innings_outs > 0 else None,
+                "whip": metrics["whip"],
+                "k_per_9": metrics["k_per_9"],
+                "bb_per_9": metrics["bb_per_9"],
+                "kbb": metrics["kbb"],
+                "fip": _derive_pitcher_fip(totals, pitching_context, constants),
+                "strikeouts": totals.strikeouts,
+                "wins": sum(1 for item in month_rows if item.decision_code == "승"),
+            }
+        )
+    return splits

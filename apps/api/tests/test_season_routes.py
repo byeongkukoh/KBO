@@ -317,6 +317,9 @@ def test_get_player_hitter_season_detail(client) -> None:
     assert data["totals"]["stolen_bases"] == 3
     assert data["page_size"] == 2
     assert len(data["logs"]) == 2
+    assert len(data["monthly_splits"]) == 12
+    assert data["monthly_splits"][3]["month"] == 4
+    assert data["monthly_splits"][3]["games"] == 3
 
 
 def test_get_player_pitcher_season_detail(client) -> None:
@@ -333,3 +336,24 @@ def test_get_player_pitcher_season_detail(client) -> None:
     assert data["totals"]["wins"] == 3
     assert data["totals"]["innings_display"] == "18.0"
     assert data["logs"][0]["innings_display"] == "6.0"
+    assert len(data["monthly_splits"]) == 12
+
+
+def test_compare_players(client) -> None:
+    _seed_season_center_data()
+
+    response = client.get(
+        "/api/players/compare",
+        params=[
+            ("player_key", "ss-구자욱"),
+            ("player_key", "lg-홍창기"),
+            ("season", "2026"),
+            ("group", "hitters"),
+        ],
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["group"] == "hitters"
+    assert len(data["players"]) == 2
+    assert all(len(item["monthly_splits"]) == 12 for item in data["players"])

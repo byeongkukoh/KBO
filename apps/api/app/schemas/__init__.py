@@ -6,7 +6,7 @@ from app.schemas.season_center import (
     SeasonSnapshotResponse,
     TeamStandingResponse,
 )
-from app.schemas.player_detail import PlayerDetailLogResponse, PlayerDetailResponse
+from app.schemas.player_detail import PlayerComparisonItemResponse, PlayerComparisonResponse, PlayerDetailLogResponse, PlayerDetailResponse, PlayerMonthlySplitResponse
 from app.schemas.team_detail import TeamRecentGameResponse, TeamSeasonDetailResponse
 from app.schemas.game_browse import GameListItemResponse, GameListResponse
 from app.schemas.freshness import FreshnessResponse
@@ -19,7 +19,10 @@ __all__ = [
     "SeasonSnapshotResponse",
     "TeamStandingResponse",
     "PlayerDetailLogResponse",
+    "PlayerMonthlySplitResponse",
     "PlayerDetailResponse",
+    "PlayerComparisonItemResponse",
+    "PlayerComparisonResponse",
     "TeamRecentGameResponse",
     "TeamSeasonDetailResponse",
     "GameListItemResponse",

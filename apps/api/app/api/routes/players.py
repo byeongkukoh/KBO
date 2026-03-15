@@ -8,8 +8,8 @@ from app.db.session import get_db
 from app.schemas.freshness import FreshnessResponse
 from app.services.game_query_service import get_player_ingested_summary
 from app.services.freshness_service import get_scope_freshness
-from app.services.player_detail_service import get_player_season_detail
-from app.schemas.player_detail import PlayerDetailLogResponse, PlayerDetailResponse
+from app.services.player_detail_service import get_player_comparison, get_player_season_detail
+from app.schemas.player_detail import PlayerComparisonItemResponse, PlayerComparisonResponse, PlayerDetailLogResponse, PlayerDetailResponse, PlayerMonthlySplitResponse
 from pydantic import BaseModel
 
 router = APIRouter(tags=["players"])
@@ -112,5 +112,38 @@ def get_player_detail(
         total_pages=int(detail_data["total_pages"]),
         freshness=FreshnessResponse(**freshness),
         seasons=cast(list[dict[str, int | float | str | bool | None]], detail_data["seasons"]),
+        monthly_splits=[PlayerMonthlySplitResponse(**cast(dict[str, Any], item)) for item in cast(list[dict[str, Any]], detail_data["monthly_splits"])],
         logs=[PlayerDetailLogResponse(**cast(dict[str, Any], item)) for item in cast(list[dict[str, Any]], detail_data["logs"])],
+    )
+
+
+@router.get("/players/compare", response_model=PlayerComparisonResponse)
+def compare_players(
+    player_key: list[str] = Query(min_length=2),
+    season: int = Query(...),
+    group: str = Query(pattern="^(hitters|pitchers)$"),
+    series_code: str | None = Query(default=None, pattern="^(preseason|regular|postseason)$"),
+    session: Session = Depends(get_db),
+) -> PlayerComparisonResponse:
+    comparison = get_player_comparison(session=session, player_keys=player_key, season=season, series_code=series_code, group=group)
+    if comparison is None:
+        raise HTTPException(status_code=404, detail="players not found")
+    freshness = get_scope_freshness(session, season=season, series_code=series_code)
+    data = cast(dict[str, Any], comparison)
+    return PlayerComparisonResponse(
+        season=int(data["season"]),
+        series_code=cast(str | None, data["series_code"]),
+        group=str(data["group"]),
+        freshness=FreshnessResponse(**freshness),
+        players=[
+            PlayerComparisonItemResponse(
+                player_key=str(item["player_key"]),
+                player_name=str(item["player_name"]),
+                team_code=str(item["team_code"]),
+                qualified=bool(item["qualified"]),
+                metrics=cast(dict[str, float | int | None], item["metrics"]),
+                monthly_splits=[PlayerMonthlySplitResponse(**cast(dict[str, Any], split)) for split in cast(list[dict[str, Any]], item["monthly_splits"])],
+            )
+            for item in cast(list[dict[str, Any]], data["players"])
+        ],
     )
