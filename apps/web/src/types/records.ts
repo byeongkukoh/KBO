@@ -48,6 +48,31 @@ export type LeaderboardPlayer = {
   qualifiedPitcher: boolean;
 };
 
+export type PlayerRecordRow = {
+  rank: number;
+  playerType: "hitter" | "pitcher";
+  playerId: string;
+  playerName: string;
+  teamCode: string;
+  games: number;
+  plateAppearances?: number;
+  innings?: number;
+  inningsDisplay?: string;
+  inningsOuts?: number;
+  battingAvg?: number;
+  hits?: number;
+  doubles?: number;
+  homeRuns?: number;
+  stolenBases?: number;
+  ops?: number;
+  era?: number;
+  strikeouts?: number;
+  wins?: number;
+  whip?: number;
+  qualifiedHitter: boolean;
+  qualifiedPitcher: boolean;
+};
+
 export type LeaderboardCategory = {
   key: string;
   label: string;
@@ -65,3 +90,20 @@ export type SeasonSnapshot = {
 };
 
 export type SeriesCode = "preseason" | "regular" | "postseason";
+
+export type PlayerGroup = "hitters" | "pitchers";
+export type FullViewMode = "top5" | "full";
+
+export type PlayerRecordsPage = {
+  season: number;
+  seriesCode?: SeriesCode;
+  group: PlayerGroup;
+  sortKey: string;
+  qualifiedOnly: boolean;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  snapshotLabel: string;
+  items: PlayerRecordRow[];
+};

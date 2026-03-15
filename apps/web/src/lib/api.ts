@@ -1,5 +1,5 @@
 import type { GameDetail, PlayerSummary } from "../types/game";
-import type { LeaderboardPlayer, SeasonSnapshot, SeriesCode, TeamStanding } from "../types/records";
+import type { LeaderboardPlayer, PlayerGroup, PlayerRecordRow, PlayerRecordsPage, SeasonSnapshot, SeriesCode, TeamStanding } from "../types/records";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api").replace(/\/$/, "");
 
@@ -81,6 +81,45 @@ type ApiSeasonSnapshot = {
   players: ApiLeaderboardPlayer[];
 };
 
+type ApiPlayerRecordRow = {
+  rank: number;
+  player_type: string;
+  player_id: string;
+  player_name: string;
+  team_code: string;
+  games: number;
+  plate_appearances: number | null;
+  innings: number | null;
+  innings_display: string | null;
+  innings_outs: number | null;
+  batting_avg: number | null;
+  hits: number | null;
+  doubles: number | null;
+  home_runs: number | null;
+  stolen_bases: number | null;
+  ops: number | null;
+  era: number | null;
+  strikeouts: number | null;
+  wins: number | null;
+  whip: number | null;
+  qualified_hitter: boolean;
+  qualified_pitcher: boolean;
+};
+
+type ApiPlayerRecordsPage = {
+  season: number;
+  series_code: string | null;
+  group: string;
+  sort_key: string;
+  qualified_only: boolean;
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+  snapshot_label: string;
+  items: ApiPlayerRecordRow[];
+};
+
 function adaptTeamStanding(team: ApiTeamStanding): TeamStanding {
   return {
     rank: team.rank,
@@ -133,6 +172,33 @@ function adaptLeaderboardPlayer(player: ApiLeaderboardPlayer): LeaderboardPlayer
   };
 }
 
+function adaptPlayerRecordRow(player: ApiPlayerRecordRow): PlayerRecordRow {
+  return {
+    rank: player.rank,
+    playerType: player.player_type === "pitcher" ? "pitcher" : "hitter",
+    playerId: player.player_id,
+    playerName: player.player_name,
+    teamCode: player.team_code,
+    games: player.games,
+    plateAppearances: player.plate_appearances ?? undefined,
+    innings: player.innings ?? undefined,
+    inningsDisplay: player.innings_display ?? undefined,
+    inningsOuts: player.innings_outs ?? undefined,
+    battingAvg: player.batting_avg ?? undefined,
+    hits: player.hits ?? undefined,
+    doubles: player.doubles ?? undefined,
+    homeRuns: player.home_runs ?? undefined,
+    stolenBases: player.stolen_bases ?? undefined,
+    ops: player.ops ?? undefined,
+    era: player.era ?? undefined,
+    strikeouts: player.strikeouts ?? undefined,
+    wins: player.wins ?? undefined,
+    whip: player.whip ?? undefined,
+    qualifiedHitter: player.qualified_hitter,
+    qualifiedPitcher: player.qualified_pitcher,
+  };
+}
+
 export async function getSeasons(): Promise<number[]> {
   const response = await requestJson<ApiSeasonList>("/seasons");
   return response.seasons;
@@ -145,5 +211,38 @@ export async function getSeasonSnapshot(season: number, seriesCode: SeriesCode):
     snapshotLabel: response.snapshot_label,
     standings: response.standings.map(adaptTeamStanding),
     players: response.players.map(adaptLeaderboardPlayer),
+  };
+}
+
+export async function getSeasonPlayerRecords(options: {
+  season: number;
+  seriesCode: SeriesCode;
+  group: PlayerGroup;
+  sortKey: string;
+  qualifiedOnly: boolean;
+  page: number;
+  pageSize: number;
+}): Promise<PlayerRecordsPage> {
+  const params = new URLSearchParams({
+    group: options.group,
+    sort_key: options.sortKey,
+    qualified_only: String(options.qualifiedOnly),
+    page: String(options.page),
+    page_size: String(options.pageSize),
+    series_code: options.seriesCode,
+  });
+  const response = await requestJson<ApiPlayerRecordsPage>(`/seasons/${options.season}/player-records?${params.toString()}`);
+  return {
+    season: response.season,
+    seriesCode: response.series_code === null ? undefined : (response.series_code as SeriesCode),
+    group: response.group as PlayerGroup,
+    sortKey: response.sort_key,
+    qualifiedOnly: response.qualified_only,
+    page: response.page,
+    pageSize: response.page_size,
+    totalCount: response.total_count,
+    totalPages: response.total_pages,
+    snapshotLabel: response.snapshot_label,
+    items: response.items.map(adaptPlayerRecordRow),
   };
 }

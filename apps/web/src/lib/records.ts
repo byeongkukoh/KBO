@@ -1,9 +1,7 @@
 import { leaderboardCategories } from "../data/seededRecords";
-import type { LeaderboardCategory, LeaderboardPlayer, TeamStanding } from "../types/records";
+import type { LeaderboardCategory, LeaderboardPlayer, PlayerGroup, TeamStanding } from "../types/records";
 
 export type TeamSortKey = "winPct" | "hits" | "doubles" | "battingAvg" | "ops" | "era";
-export type PlayerGroup = "hitters" | "pitchers";
-export type FullViewMode = "top5" | "full";
 
 export function sortStandings(rows: TeamStanding[], sortKey: TeamSortKey): TeamStanding[] {
   const sorted = [...rows].sort((left, right) => {
