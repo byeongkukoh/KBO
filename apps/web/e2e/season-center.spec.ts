@@ -130,6 +130,113 @@ test("renders db-backed standings and player records", async ({ page }) => {
     });
   });
 
+  await page.route("http://127.0.0.1:8000/api/teams/LG/season-detail?season=2025&series_code=regular", async (route) => {
+    await route.fulfill({
+      json: {
+        season: 2025,
+        series_code: "regular",
+        team_code: "LG",
+        team_name: "LG 트윈스",
+        wins: 85,
+        losses: 56,
+        draws: 0,
+        win_pct: 0.603,
+        runs_scored: 780,
+        runs_allowed: 620,
+        run_diff: 160,
+        hits: 1234,
+        doubles: 240,
+        stolen_bases: 87,
+        batting_avg: 0.281,
+        ops: 0.78,
+        era: 3.62,
+        whip: 1.27,
+        ops_plus: 106.2,
+        era_plus: 109.4,
+        last_ten: "7-3",
+        streak: "W2",
+        recent_games: [
+          {
+            game_id: "20251001LGSK0",
+            game_date: "2025-10-01",
+            series_code: "regular",
+            stadium: "잠실",
+            result: "W",
+            opponent_team_code: "SS",
+            team_score: 5,
+            opponent_score: 3,
+          },
+        ],
+      },
+    });
+  });
+
+  await page.route(/http:\/\/127\.0\.0\.1:8000\/api\/games\?.*/, async (route) => {
+    await route.fulfill({
+      json: {
+        season: 2025,
+        series_code: "regular",
+        team_code: null,
+        game_date: null,
+        page: 1,
+        page_size: 25,
+        total_count: 2,
+        total_pages: 1,
+        items: [
+          {
+            game_id: "20251001LGSK0",
+            game_date: "2025-10-01",
+            series_code: "regular",
+            series_name: "정규경기",
+            stadium: "잠실",
+            away_team_code: "SS",
+            home_team_code: "LG",
+            away_score: 3,
+            home_score: 5,
+            status_code: "3",
+          },
+          {
+            game_id: "20250930NCWO0",
+            game_date: "2025-09-30",
+            series_code: "regular",
+            series_name: "정규경기",
+            stadium: "창원",
+            away_team_code: "WO",
+            home_team_code: "NC",
+            away_score: 1,
+            home_score: 2,
+            status_code: "3",
+          },
+        ],
+      },
+    });
+  });
+
+  await page.route("http://127.0.0.1:8000/api/games/20251001LGSK0", async (route) => {
+    await route.fulfill({
+      json: {
+        game_id: "20251001LGSK0",
+        game_date: "2025-10-01",
+        status_code: "3",
+        stadium: "잠실",
+        away_team_code: "SS",
+        home_team_code: "LG",
+        away_score: 3,
+        home_score: 5,
+        innings: [
+          { inning_no: 1, away_runs: 1, home_runs: 0 },
+          { inning_no: 2, away_runs: 0, home_runs: 2 },
+        ],
+        team_stats: [
+          { team_code: "SS", team_name: "삼성 라이온즈", runs: 3, hits: 7, errors: 1, walks: 2 },
+          { team_code: "LG", team_name: "LG 트윈스", runs: 5, hits: 9, errors: 0, walks: 4 },
+        ],
+        batting_rows: [],
+        pitching_rows: [],
+      },
+    });
+  });
+
   await page.route(/http:\/\/127\.0\.0\.1:8000\/api\/seasons\/2025\/player-records.*/, async (route) => {
     const url = new URL(route.request().url());
     const group = url.searchParams.get("group");
@@ -341,7 +448,10 @@ test("renders db-backed standings and player records", async ({ page }) => {
 
   await page.getByRole("button", { name: "홈" }).click();
   await expect(page.getByText(/시즌 팀 순위/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "LG 트윈스" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "LG 트윈스" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "LG 트윈스" }).first().click();
+  await expect(page.getByText("Teams / Detail")).toBeVisible();
+  await expect(page.getByText("OPS+")).toBeVisible();
 
   await page.getByRole("button", { name: "선수 기록" }).click();
   await page.getByRole("button", { name: "전체 보기" }).click();
@@ -353,4 +463,9 @@ test("renders db-backed standings and player records", async ({ page }) => {
   await page.getByRole("button", { name: "원태인" }).click();
   await expect(page.getByText("Player / Detail")).toBeVisible();
   await expect(page.getByText("7.0")).toBeVisible();
+
+  await page.getByRole("button", { name: "경기 기록" }).click();
+  await expect(page.getByText("Games / Browse")).toBeVisible();
+  await page.getByRole("button", { name: "3-5" }).click();
+  await expect(page.getByText("Games / Detail")).toBeVisible();
 });
