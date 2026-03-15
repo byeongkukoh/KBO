@@ -12,7 +12,7 @@
 - `compose.yml` 에 PostgreSQL 개발 컨테이너 구성을 추가했고, API/ingest 는 호스트에서 실행하는 방식을 유지한다.
 - `apps/api` 에 단일 경기 vertical slice 백엔드 구현이 추가되어 fixture 또는 live 소스로 1경기 ingest, PostgreSQL 저장, 파생 지표 계산, 조회 API 제공이 가능하다.
 - `apps/api` 에 시즌 센터용 read API가 추가되어 기존 game-level 테이블에서 시즌별 팀 순위/팀 통계/선수 리더보드를 DB 집계로 조회할 수 있다.
-- 2025 실제 시즌 데이터가 PostgreSQL 에 적재되어 `preseason`, `regular`, `postseason` 기준으로 분리 조회가 가능하다.
+- 2024 전체 시즌, 2025 전체 시즌, 2026 현재까지 완료된 경기 데이터가 PostgreSQL 에 적재되어 시즌별/시리즈별 조회가 가능하다.
 - `apps/web` 시즌 센터 프론트엔드가 실제 `GET /api/seasons` / `GET /api/seasons/{season}/snapshot` API를 사용하도록 전환되어 팀 순위, 팀 통계, 선수 Top 5, 전체 선수 기록 화면을 DB snapshot 기준으로 조회한다.
 - 시즌 센터 프론트/백엔드 구조를 기능 단위 모듈로 분리해 유지보수성을 개선했다.
 - 시즌 센터는 이제 URL query state, 전체 기록 페이지네이션, 선수 상세 페이지를 포함한 실제 탐색 흐름을 지원한다.
@@ -82,6 +82,13 @@
   - `python -m app.ingest.cli ingest-season --season 2025 --series-group preseason --series-group regular --series-group postseason --use-live --start-date 2025-03-01 --end-date 2025-10-31` 실행
   - 적재 결과: preseason 42경기, regular 720경기, postseason 16경기, 총 778경기 성공
   - 시즌 적재 중 중복 선수 행을 병합하도록 ingest 로직을 보강해 bulk backfill 실패를 제거
+- 2024 / 2026 실제 시즌 적재 완료
+  - 2024: preseason 46경기, regular 720경기, postseason 16경기, 총 782경기 적재 성공
+  - 2026: 현재까지 완료된 preseason 20경기 적재 성공
+  - `/api/seasons` 응답은 현재 `[2026, 2025, 2024]`
+- 정시 시즌 동기화 명령 추가
+  - `python -m app.ingest.cli run-scheduled-season-sync --season 2026 --series-group preseason --series-group regular --time 09:00 --time 21:00 --timezone Asia/Seoul --lookback-days 3 --use-live`
+  - 지정 시각마다 최근 `lookback_days` 범위를 다시 훑어 완료된 경기를 적재하고 league context 를 갱신한다.
 - 프론트엔드 season center 실제 API 전환 완료
   - `apps/web/src/App.tsx` 에서 시즌 목록과 시즌 snapshot 을 비동기 fetch 하도록 전환
   - `apps/web/src/lib/api.ts` 에 season API adapter 추가
@@ -137,6 +144,7 @@
 - 2025 실제 시즌 적재는 현재 관측된 `ws` game list / scoreboard / boxscore 응답을 사용한 live path 로 수행되며, public HTML inventory 기반 전환은 후속 과제로 남아 있다.
 - public HTML inventory 방향은 계속 `ScoreBoard` 기반 경기 식별/발견을 우선 후보로 두고, `ws/*` 는 detail fallback 으로 한정하는 쪽이 저장소 문서와 가장 잘 맞는다.
 - 현재 ingest 코드는 `ScoreBoard.aspx` HTML에서 `gameId` discovery 를 먼저 시도하고, 날짜 불일치 또는 inventory 부족 시 `GetKboGameList` 로 fallback 하도록 정리되어 있다. 즉 방향은 HTML-first 이지만, KBO가 단순 GET에 현재 날짜 scoreboard 를 반환하는 한계 때문에 아직 완전 cutover 단계는 아니다.
+- 현재 운영 기준 시즌 분포는 2024, 2025, 2026 이며, 2026 은 preseason만 적재된 상태다.
 - PostgreSQL 초기 스키마는 경기/선수/팀/시즌 식별자와 시즌 기록, 경기 기록, source capture, sync log 중심으로 먼저 정리했다.
 - ingestion 경계는 MVP 단계에서 단일 앱을 우선하고, source collection 과 batch orchestration 책임을 문서상 분리했다.
 - `robots.txt` 는 `/ws/` 경로를 disallow 하고, `ScoreBoard` 의 문자중계 버튼은 로그인 경고로 연결된다.
@@ -153,7 +161,7 @@
 ## Recommended Next Tasks
 
 1. `ScoreBoard.aspx` 날짜 제어 방식을 더 확인해 HTML-first inventory를 완전 cutover 할 수 있는지 검증한다.
-2. 로컬 conda 환경에서 ingest CLI와 FastAPI 실행 절차를 문서화한다.
+2. 로컬 conda 환경에서 ingest CLI, scheduled sync, FastAPI 실행 절차를 문서화한다.
 3. `IBB`, pitcher `HBP` 를 더 정확히 확보할 수 있는 source path를 확인해 Tier 2 지표 정확도를 높인다.
 4. park factor / 리그별 weight 정책을 정해 `OPS+`, `ERA+`, `wRC+` 를 KBO 전용 기준으로 고도화한다.
 5. season snapshot/player-records/player-detail/team-detail/game-list API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
