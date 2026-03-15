@@ -91,19 +91,22 @@ def get_player_detail(
     if detail is None:
         raise HTTPException(status_code=404, detail="player not found")
 
+    detail_data = cast(dict[str, Any], detail)
+
     return PlayerDetailResponse(
-        player_key=str(detail["player_key"]),
-        player_name=str(detail["player_name"]),
-        team_code=str(detail["team_code"]),
-        group=str(detail["group"]),
-        season=int(detail["season"]),
-        series_code=cast(str | None, detail["series_code"]),
-        qualified=bool(detail["qualified"]),
-        totals=cast(dict[str, int | str], detail["totals"]),
-        metrics=cast(dict[str, float | int | None], detail["metrics"]),
-        page=int(detail["page"]),
-        page_size=int(detail["page_size"]),
-        total_count=int(detail["total_count"]),
-        total_pages=int(detail["total_pages"]),
-        logs=[PlayerDetailLogResponse(**item) for item in cast(list[dict[str, object]], detail["logs"])],
+        player_key=str(detail_data["player_key"]),
+        player_name=str(detail_data["player_name"]),
+        team_code=str(detail_data["team_code"]),
+        group=str(detail_data["group"]),
+        season=int(detail_data["season"]),
+        series_code=cast(str | None, detail_data["series_code"]),
+        qualified=bool(detail_data["qualified"]),
+        totals=cast(dict[str, int | str], detail_data["totals"]),
+        metrics=cast(dict[str, float | int | None], detail_data["metrics"]),
+        page=int(detail_data["page"]),
+        page_size=int(detail_data["page_size"]),
+        total_count=int(detail_data["total_count"]),
+        total_pages=int(detail_data["total_pages"]),
+        seasons=cast(list[dict[str, int | float | str | bool | None]], detail_data["seasons"]),
+        logs=[PlayerDetailLogResponse(**cast(dict[str, Any], item)) for item in cast(list[dict[str, Any]], detail_data["logs"])],
     )

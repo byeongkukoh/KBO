@@ -41,4 +41,5 @@ class PlayerDetailResponse(BaseModel):
     page_size: int
     total_count: int
     total_pages: int
+    seasons: list[dict[str, int | float | str | bool | None]]
     logs: list[PlayerDetailLogResponse]

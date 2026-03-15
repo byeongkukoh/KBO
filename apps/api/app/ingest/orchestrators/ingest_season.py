@@ -58,6 +58,7 @@ def ingest_season(
     while current <= last:
         scanned_dates += 1
         game_date = current.strftime("%Y%m%d")
+        discovered_ids = {item["game_id"] for item in client.fetch_scoreboard_inventory(game_date)} if use_live else set()
         payload = client.fetch_game_list(game_date)
         games = payload.get("game", [])
         for item in games:
@@ -66,6 +67,8 @@ def ingest_season(
             game_id = str(item.get("G_ID", ""))
             game_state = str(item.get("GAME_STATE_SC", ""))
             if le_id != 1 or sr_id not in requested_sr_ids or not game_id or game_state != "3":
+                continue
+            if use_live and discovered_ids and game_id not in discovered_ids:
                 continue
             matched_games += 1
             if int(item.get("SEASON_ID", season)) != season:

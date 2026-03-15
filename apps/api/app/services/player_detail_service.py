@@ -22,6 +22,85 @@ def get_player_season_detail(
     return _get_pitcher_detail(session, player_key, season, series_code, page, page_size)
 
 
+def _build_hitter_season_rows(session: Session, player_key: str) -> list[dict[str, int | float | str | bool | None]]:
+    stmt: Select[tuple[PlayerGameBattingStat]] = (
+        select(PlayerGameBattingStat)
+        .join(Game, PlayerGameBattingStat.game_id == Game.id)
+        .where(PlayerGameBattingStat.player_key == player_key)
+        .options(selectinload(PlayerGameBattingStat.team))
+    )
+    rows = list(session.execute(stmt).scalars())
+    grouped: dict[tuple[int, str], list[PlayerGameBattingStat]] = {}
+    for row in rows:
+        key = (row.game.season_id, row.team.team_code)
+        grouped.setdefault(key, []).append(row)
+    season_rows: list[dict[str, int | float | str | bool | None]] = []
+    for (season_id, team_code), items in sorted(grouped.items(), reverse=True):
+        totals = BattingTotals(
+            at_bats=sum(item.at_bats for item in items),
+            hits=sum(item.hits for item in items),
+            doubles=sum(item.doubles for item in items),
+            triples=sum(item.triples for item in items),
+            home_runs=sum(item.home_runs for item in items),
+            walks=sum(item.walks for item in items),
+            hit_by_pitch=sum(item.hit_by_pitch for item in items),
+            sacrifice_flies=sum(item.sacrifice_flies for item in items),
+        )
+        season_rows.append(
+            {
+                "season": season_id,
+                "team_code": team_code,
+                "games": len(items),
+                "qualified": sum(item.plate_appearances for item in items) >= _get_team_games_count(session, items[0].team_id, season_id, None) * 3.1,
+                "plate_appearances": sum(item.plate_appearances for item in items),
+                "hits": totals.hits,
+                "home_runs": totals.home_runs,
+                "stolen_bases": sum(item.stolen_bases for item in items),
+                "batting_avg": derive_batting_metrics(totals)["avg"],
+                "ops": derive_batting_metrics(totals)["ops"],
+            }
+        )
+    return season_rows
+
+
+def _build_pitcher_season_rows(session: Session, player_key: str) -> list[dict[str, int | float | str | bool | None]]:
+    stmt: Select[tuple[PlayerGamePitchingStat]] = (
+        select(PlayerGamePitchingStat)
+        .join(Game, PlayerGamePitchingStat.game_id == Game.id)
+        .where(PlayerGamePitchingStat.player_key == player_key)
+        .options(selectinload(PlayerGamePitchingStat.team))
+    )
+    rows = list(session.execute(stmt).scalars())
+    grouped: dict[tuple[int, str], list[PlayerGamePitchingStat]] = {}
+    for row in rows:
+        key = (row.game.season_id, row.team.team_code)
+        grouped.setdefault(key, []).append(row)
+    season_rows: list[dict[str, int | float | str | bool | None]] = []
+    for (season_id, team_code), items in sorted(grouped.items(), reverse=True):
+        totals = PitchingTotals(
+            innings_outs=sum(item.innings_outs for item in items),
+            hits_allowed=sum(item.hits_allowed for item in items),
+            walks_allowed=sum(item.walks_allowed for item in items),
+            strikeouts=sum(item.strikeouts for item in items),
+        )
+        metrics = derive_pitching_metrics(totals)
+        season_rows.append(
+            {
+                "season": season_id,
+                "team_code": team_code,
+                "games": len(items),
+                "qualified": totals.innings_outs >= _get_team_games_count(session, items[0].team_id, season_id, None) * 3,
+                "innings_outs": totals.innings_outs,
+                "innings_display": format_innings_display(totals.innings_outs),
+                "wins": sum(1 for item in items if item.decision_code == "승"),
+                "strikeouts": totals.strikeouts,
+                "era": round(sum(item.earned_runs for item in items) * 27 / totals.innings_outs, 3) if totals.innings_outs > 0 else None,
+                "whip": metrics["whip"],
+            }
+        )
+    return season_rows
+
+
 def _get_hitter_detail(session: Session, player_key: str, season: int, series_code: str | None, page: int, page_size: int) -> dict[str, object] | None:
     stmt: Select[tuple[PlayerGameBattingStat]] = (
         select(PlayerGameBattingStat)
@@ -79,6 +158,7 @@ def _get_hitter_detail(session: Session, player_key: str, season: int, series_co
         "page_size": page_size,
         "total_count": total_count,
         "total_pages": total_pages,
+        "seasons": _build_hitter_season_rows(session, player_key),
         "logs": [
             {
                 "game_id": item.game.kbo_game_id,
@@ -155,6 +235,7 @@ def _get_pitcher_detail(session: Session, player_key: str, season: int, series_c
         "page_size": page_size,
         "total_count": total_count,
         "total_pages": total_pages,
+        "seasons": _build_pitcher_season_rows(session, player_key),
         "logs": [
             {
                 "game_id": item.game.kbo_game_id,
