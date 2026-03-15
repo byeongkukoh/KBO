@@ -18,6 +18,7 @@
 - 시즌 센터는 이제 URL query state, 전체 기록 페이지네이션, 선수 상세 페이지를 포함한 실제 탐색 흐름을 지원한다.
 - 시즌 센터 URL 구조는 `/seasons/:season`, `/seasons/:season/players`, `/seasons/:season/players/:playerKey` 기준으로 동작한다.
 - 시즌 센터와 선수 상세에 sabermetrics v1 지표가 추가되어 저위험 파생 지표를 실제 2025 시즌 데이터 기준으로 확인할 수 있다.
+- 팀 상세 페이지와 경기 목록/상세 화면이 season center 흐름에 연결되었다.
 
 ## Completed Planning Work
 
@@ -58,6 +59,14 @@
   - 투수: `WHIP`, `K/9`, `BB/9`, `K/BB`
   - 시즌 snapshot, player-records, player-detail 응답과 프론트 전체 기록/선수 상세 화면에 공통 반영
   - 고급 지표 Tier 2 전 단계로, 리그 평균/상수 데이터 없이 계산 가능한 저위험 파생 지표만 우선 노출
+- 팀/경기 탐색 1차 구현 완료
+  - `GET /api/teams/{team_code}/season-detail` 추가
+  - `GET /api/games` 목록 API 추가
+  - 프론트에서 팀 상세 화면, 경기 목록 화면, 경기 상세 화면을 season center path에 연결
+- 리그 baseline/상수 1차 구현 완료
+  - `league_season_batting_contexts`, `league_season_pitching_contexts`, `advanced_metric_constants` 테이블 추가
+  - `python -m app.ingest.cli refresh-league-context --season 2025 --series-code regular` 지원
+  - 팀 상세에서 `OPS+`, `ERA+` 를 첫 Tier 2 지표로 노출
 - 2025 실제 시즌 적재 완료
   - `python -m app.ingest.cli ingest-season --season 2025 --series-group preseason --series-group regular --series-group postseason --use-live --start-date 2025-03-01 --end-date 2025-10-31` 실행
   - 적재 결과: preseason 42경기, regular 720경기, postseason 16경기, 총 778경기 성공
@@ -108,6 +117,8 @@
 - 시즌 센터 백엔드는 현재 DB-backed snapshot 응답에서 팀 `stolen_bases`, 투수 `wins`, 타자 `stolen_bases` 를 실제 집계로 반환한다.
 - 시즌 센터 백엔드는 현재 DB-backed snapshot/records 응답에서 `Games Back`, `WHIP`, `stolen_bases`, 투수 `wins` 를 실제 적재 데이터 기준으로 계산한다.
 - 시즌 센터 백엔드는 현재 DB-backed snapshot/records/detail 응답에서 sabermetrics v1 (`ISO`, `BABIP`, `BB%`, `K%`, `K/9`, `BB/9`, `K/BB`) 을 실제 적재 데이터 기준으로 계산한다.
+- 팀 상세는 현재 시즌 누적 기록, 최근 경기, `OPS+`, `ERA+` 를 제공한다.
+- 경기 목록/상세는 현재 완료 경기 중심 탐색만 지원하며, raw play-by-play는 아직 제공하지 않는다.
 - 현재 player detail 페이지는 문서상의 장기 목표인 커리어 전체 타임라인 대신, 2025 실제 시즌 기준 요약 + 게임 로그 중심으로 먼저 제공한다.
 - player detail 은 현재 적재된 시즌 범위 안에서 커리어 시즌 요약을 보여주며, 현재 데이터셋 기준으로는 2025 시즌이 중심이다.
 - 2025 실제 시즌 적재는 현재 관측된 `ws` game list / scoreboard / boxscore 응답을 사용한 live path 로 수행되며, public HTML inventory 기반 전환은 후속 과제로 남아 있다.
@@ -130,8 +141,8 @@
 
 1. `ScoreBoard.aspx` 날짜 제어 방식을 더 확인해 HTML-first inventory를 완전 cutover 할 수 있는지 검증한다.
 2. 로컬 conda 환경에서 ingest CLI와 FastAPI 실행 절차를 문서화한다.
-3. 리그 평균/상수 데이터 적재 계층을 추가해 `wOBA`, `wRC`, `wRC+`, `OPS+`, `ERA+`, `FIP` 준비를 시작한다.
-4. season snapshot/player-records/player-detail API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
+3. 리그 baseline/상수 계층 위에 `wOBA`, `wRC`, `wRC+`, `FIP` 를 위한 raw input(IBB, pitcher HBP)과 계산 서비스를 확장한다.
+4. season snapshot/player-records/player-detail/team-detail/game-list API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
 
 ## Working Rule For Future Sessions
 
