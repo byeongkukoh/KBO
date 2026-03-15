@@ -6,6 +6,7 @@ from app.schemas.season_center import (
     SeasonSnapshotResponse,
     TeamStandingResponse,
 )
+from app.schemas.player_detail import PlayerDetailLogResponse, PlayerDetailResponse
 
 __all__ = [
     "LeaderboardPlayerResponse",
@@ -14,4 +15,6 @@ __all__ = [
     "SeasonListResponse",
     "SeasonSnapshotResponse",
     "TeamStandingResponse",
+    "PlayerDetailLogResponse",
+    "PlayerDetailResponse",
 ]
