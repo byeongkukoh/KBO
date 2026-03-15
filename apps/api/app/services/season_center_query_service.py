@@ -109,6 +109,7 @@ def _accumulate_games(
             accumulator.triples += row.triples
             accumulator.home_runs += row.home_runs
             accumulator.stolen_bases += row.stolen_bases
+            accumulator.strikeouts += row.strikeouts
             accumulator.walks += row.walks
             accumulator.hit_by_pitch += row.hit_by_pitch
             accumulator.sacrifice_flies += row.sacrifice_flies

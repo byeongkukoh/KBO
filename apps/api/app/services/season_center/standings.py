@@ -12,6 +12,7 @@ def build_team_standings(accumulators: dict[str, TeamAccumulator]) -> list[TeamS
             doubles=accumulator.doubles,
             triples=accumulator.triples,
             home_runs=accumulator.home_runs,
+            strikeouts=0,
             walks=accumulator.walks,
             hit_by_pitch=accumulator.hit_by_pitch,
             sacrifice_flies=accumulator.sacrifice_flies,

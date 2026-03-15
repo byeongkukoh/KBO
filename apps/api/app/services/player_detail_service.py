@@ -42,10 +42,12 @@ def _build_hitter_season_rows(session: Session, player_key: str) -> list[dict[st
             doubles=sum(item.doubles for item in items),
             triples=sum(item.triples for item in items),
             home_runs=sum(item.home_runs for item in items),
+            strikeouts=sum(item.strikeouts for item in items),
             walks=sum(item.walks for item in items),
             hit_by_pitch=sum(item.hit_by_pitch for item in items),
             sacrifice_flies=sum(item.sacrifice_flies for item in items),
         )
+        metrics = derive_batting_metrics(totals)
         season_rows.append(
             {
                 "season": season_id,
@@ -56,8 +58,12 @@ def _build_hitter_season_rows(session: Session, player_key: str) -> list[dict[st
                 "hits": totals.hits,
                 "home_runs": totals.home_runs,
                 "stolen_bases": sum(item.stolen_bases for item in items),
-                "batting_avg": derive_batting_metrics(totals)["avg"],
-                "ops": derive_batting_metrics(totals)["ops"],
+                "batting_avg": metrics["avg"],
+                "ops": metrics["ops"],
+                "iso": metrics["iso"],
+                "babip": metrics["babip"],
+                "bb_rate": metrics["bb_rate"],
+                "k_rate": metrics["k_rate"],
             }
         )
     return season_rows
@@ -96,6 +102,9 @@ def _build_pitcher_season_rows(session: Session, player_key: str) -> list[dict[s
                 "strikeouts": totals.strikeouts,
                 "era": round(sum(item.earned_runs for item in items) * 27 / totals.innings_outs, 3) if totals.innings_outs > 0 else None,
                 "whip": metrics["whip"],
+                "k_per_9": metrics["k_per_9"],
+                "bb_per_9": metrics["bb_per_9"],
+                "kbb": metrics["kbb"],
             }
         )
     return season_rows
@@ -123,6 +132,7 @@ def _get_hitter_detail(session: Session, player_key: str, season: int, series_co
         doubles=sum(item.doubles for item in rows),
         triples=sum(item.triples for item in rows),
         home_runs=sum(item.home_runs for item in rows),
+        strikeouts=sum(item.strikeouts for item in rows),
         walks=sum(item.walks for item in rows),
         hit_by_pitch=sum(item.hit_by_pitch for item in rows),
         sacrifice_flies=sum(item.sacrifice_flies for item in rows),
@@ -150,6 +160,7 @@ def _get_hitter_detail(session: Session, player_key: str, season: int, series_co
             "triples": totals.triples,
             "home_runs": totals.home_runs,
             "stolen_bases": sum(item.stolen_bases for item in rows),
+            "strikeouts": totals.strikeouts,
             "walks": totals.walks,
             "runs_batted_in": sum(item.runs_batted_in for item in rows),
         },

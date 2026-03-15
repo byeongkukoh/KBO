@@ -45,10 +45,17 @@ class LeaderboardPlayerResponse(BaseModel):
     home_runs: int | None
     stolen_bases: int | None
     ops: float | None
+    iso: float | None
+    babip: float | None
+    bb_rate: float | None
+    k_rate: float | None
     era: float | None
     strikeouts: int | None
     wins: int | None
     whip: float | None
+    k_per_9: float | None
+    bb_per_9: float | None
+    kbb: float | None
     qualified_hitter: bool
     qualified_pitcher: bool
 
@@ -77,10 +84,17 @@ class PlayerRecordRowResponse(BaseModel):
     home_runs: int | None
     stolen_bases: int | None
     ops: float | None
+    iso: float | None
+    babip: float | None
+    bb_rate: float | None
+    k_rate: float | None
     era: float | None
     strikeouts: int | None
     wins: int | None
     whip: float | None
+    k_per_9: float | None
+    bb_per_9: float | None
+    kbb: float | None
     qualified_hitter: bool
     qualified_pitcher: bool
 

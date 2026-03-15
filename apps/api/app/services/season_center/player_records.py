@@ -1,10 +1,10 @@
 from math import ceil
 
-from app.services.derived_stats import safe_ratio
+from app.services.derived_stats import BattingTotals, PitchingTotals, derive_batting_metrics, derive_pitching_metrics, safe_ratio
 from app.services.season_center.types import LeaderboardPlayerSnapshot, PlayerBattingAccumulator, PlayerPitchingAccumulator, PlayerRecordRow, PlayerRecordsPage
 
-HITTER_SORT_KEYS = {"avg", "hits", "doubles", "homeRuns", "stolenBases", "ops"}
-PITCHER_SORT_KEYS = {"era", "strikeouts", "wins", "whip"}
+HITTER_SORT_KEYS = {"avg", "hits", "doubles", "homeRuns", "stolenBases", "ops", "iso", "babip", "bbRate", "kRate"}
+PITCHER_SORT_KEYS = {"era", "strikeouts", "wins", "whip", "kPer9", "bbPer9", "kbb"}
 
 
 def build_player_snapshots(
@@ -15,14 +15,19 @@ def build_player_snapshots(
     snapshots: list[LeaderboardPlayerSnapshot] = []
 
     for accumulator in batting.values():
-        singles = max(accumulator.hits - accumulator.doubles - accumulator.triples - accumulator.home_runs, 0)
-        total_bases = singles + accumulator.doubles * 2 + accumulator.triples * 3 + accumulator.home_runs * 4
-        obp = safe_ratio(
-            accumulator.hits + accumulator.walks + accumulator.hit_by_pitch,
-            accumulator.at_bats + accumulator.walks + accumulator.hit_by_pitch + accumulator.sacrifice_flies,
+        batting_metrics = derive_batting_metrics(
+            BattingTotals(
+                at_bats=accumulator.at_bats,
+                hits=accumulator.hits,
+                doubles=accumulator.doubles,
+                triples=accumulator.triples,
+                home_runs=accumulator.home_runs,
+                strikeouts=accumulator.strikeouts,
+                walks=accumulator.walks,
+                hit_by_pitch=accumulator.hit_by_pitch,
+                sacrifice_flies=accumulator.sacrifice_flies,
+            )
         )
-        slg = safe_ratio(total_bases, accumulator.at_bats)
-        ops = round(obp + slg, 3) if obp is not None and slg is not None else None
         team_games = team_games_by_code.get(accumulator.team_code, 0)
         qualified_hitter = accumulator.plate_appearances >= team_games * 3.1 if team_games > 0 else False
         snapshots.append(
@@ -33,16 +38,23 @@ def build_player_snapshots(
                 games=accumulator.games,
                 plate_appearances=accumulator.plate_appearances,
                 innings=None,
-                batting_avg=safe_ratio(accumulator.hits, accumulator.at_bats),
+                batting_avg=cast_float(batting_metrics["avg"]),
                 hits=accumulator.hits,
                 doubles=accumulator.doubles,
                 home_runs=accumulator.home_runs,
                 stolen_bases=accumulator.stolen_bases,
-                ops=ops,
+                ops=cast_float(batting_metrics["ops"]),
+                iso=cast_float(batting_metrics["iso"]),
+                babip=cast_float(batting_metrics["babip"]),
+                bb_rate=cast_float(batting_metrics["bb_rate"]),
+                k_rate=cast_float(batting_metrics["k_rate"]),
                 era=None,
                 strikeouts=None,
                 wins=None,
                 whip=None,
+                k_per_9=None,
+                bb_per_9=None,
+                kbb=None,
                 qualified_hitter=qualified_hitter,
                 qualified_pitcher=False,
             )
@@ -51,6 +63,14 @@ def build_player_snapshots(
     for accumulator in pitching.values():
         team_games = team_games_by_code.get(accumulator.team_code, 0)
         qualified_pitcher = accumulator.innings_outs >= team_games * 3 if team_games > 0 else False
+        pitching_metrics = derive_pitching_metrics(
+            PitchingTotals(
+                innings_outs=accumulator.innings_outs,
+                hits_allowed=accumulator.hits_allowed,
+                walks_allowed=accumulator.walks_allowed,
+                strikeouts=accumulator.strikeouts,
+            )
+        )
         snapshots.append(
             LeaderboardPlayerSnapshot(
                 player_id=accumulator.player_id,
@@ -65,10 +85,17 @@ def build_player_snapshots(
                 home_runs=None,
                 stolen_bases=None,
                 ops=None,
+                iso=None,
+                babip=None,
+                bb_rate=None,
+                k_rate=None,
                 era=safe_ratio(accumulator.earned_runs * 27, accumulator.innings_outs),
                 strikeouts=accumulator.strikeouts,
                 wins=accumulator.wins,
-                whip=safe_ratio(accumulator.hits_allowed + accumulator.walks_allowed, accumulator.innings_outs / 3 if accumulator.innings_outs > 0 else 0),
+                whip=cast_float(pitching_metrics["whip"]),
+                k_per_9=cast_float(pitching_metrics["k_per_9"]),
+                bb_per_9=cast_float(pitching_metrics["bb_per_9"]),
+                kbb=cast_float(pitching_metrics["kbb"]),
                 qualified_hitter=False,
                 qualified_pitcher=qualified_pitcher,
             )
@@ -170,10 +197,17 @@ def _sort_and_rank(players: list[LeaderboardPlayerSnapshot], group: str, sort_ke
                 home_runs=player.home_runs,
                 stolen_bases=player.stolen_bases,
                 ops=player.ops,
+                iso=player.iso,
+                babip=player.babip,
+                bb_rate=player.bb_rate,
+                k_rate=player.k_rate,
                 era=player.era,
                 strikeouts=player.strikeouts,
                 wins=player.wins,
                 whip=player.whip,
+                k_per_9=player.k_per_9,
+                bb_per_9=player.bb_per_9,
+                kbb=player.kbb,
                 qualified_hitter=player.qualified_hitter,
                 qualified_pitcher=player.qualified_pitcher,
             )
@@ -189,13 +223,26 @@ def _player_sort_value(player: LeaderboardPlayerSnapshot, sort_key: str) -> floa
         "homeRuns": player.home_runs,
         "stolenBases": player.stolen_bases,
         "ops": player.ops,
+        "iso": player.iso,
+        "babip": player.babip,
+        "bbRate": player.bb_rate,
+        "kRate": player.k_rate,
         "era": player.era,
         "strikeouts": player.strikeouts,
         "wins": player.wins,
         "whip": player.whip,
+        "kPer9": player.k_per_9,
+        "bbPer9": player.bb_per_9,
+        "kbb": player.kbb,
     }
     value = mapping.get(sort_key)
     return float(value) if value is not None else -1.0
+
+
+def cast_float(value: float | int | None) -> float | None:
+    if value is None:
+        return None
+    return float(value)
 
 
 def _innings_outs_from_float(value: float | None) -> int | None:

@@ -43,10 +43,17 @@ class LeaderboardPlayerSnapshot:
     home_runs: int | None
     stolen_bases: int | None
     ops: float | None
+    iso: float | None
+    babip: float | None
+    bb_rate: float | None
+    k_rate: float | None
     era: float | None
     strikeouts: int | None
     wins: int | None
     whip: float | None
+    k_per_9: float | None
+    bb_per_9: float | None
+    kbb: float | None
     qualified_hitter: bool
     qualified_pitcher: bool
 
@@ -69,10 +76,17 @@ class PlayerRecordRow:
     home_runs: int | None
     stolen_bases: int | None
     ops: float | None
+    iso: float | None
+    babip: float | None
+    bb_rate: float | None
+    k_rate: float | None
     era: float | None
     strikeouts: int | None
     wins: int | None
     whip: float | None
+    k_per_9: float | None
+    bb_per_9: float | None
+    kbb: float | None
     qualified_hitter: bool
     qualified_pitcher: bool
 
@@ -140,6 +154,7 @@ class PlayerBattingAccumulator:
     triples: int = 0
     home_runs: int = 0
     stolen_bases: int = 0
+    strikeouts: int = 0
     walks: int = 0
     hit_by_pitch: int = 0
     sacrifice_flies: int = 0
