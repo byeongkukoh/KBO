@@ -15,6 +15,7 @@
 - 2025 실제 시즌 데이터가 PostgreSQL 에 적재되어 `preseason`, `regular`, `postseason` 기준으로 분리 조회가 가능하다.
 - `apps/web` 시즌 센터 프론트엔드가 실제 `GET /api/seasons` / `GET /api/seasons/{season}/snapshot` API를 사용하도록 전환되어 팀 순위, 팀 통계, 선수 Top 5, 전체 선수 기록 화면을 DB snapshot 기준으로 조회한다.
 - 시즌 센터 프론트/백엔드 구조를 기능 단위 모듈로 분리해 유지보수성을 개선했다.
+- 시즌 센터는 이제 URL query state, 전체 기록 페이지네이션, 선수 상세 페이지를 포함한 실제 탐색 흐름을 지원한다.
 
 ## Completed Planning Work
 
@@ -45,6 +46,10 @@
   - `parse_innings_to_outs` 가 `5.1`, `5.2` 같은 야구 이닝 표기를 올바르게 해석하도록 수정
   - 시즌 센터 백엔드를 standings/player records 모듈로 분리하고 전체 기록용 pagination API `GET /api/seasons/{season}/player-records` 추가
   - 프론트를 season-center feature 폴더와 view/component 단위로 분리하고, 전체 타자/투수 기록을 페이지네이션으로 조회하도록 확장
+- 시즌 센터 탐색 UX 확장 완료
+  - 전체 기록 화면에 page size 선택, 직접 페이지 이동, URL query state 동기화 추가
+  - `GET /api/players/{player_key}/season-detail` 추가로 선수 상세 페이지에서 시즌 요약과 경기 로그 페이지네이션 제공
+  - 시즌 센터에서 선수명 클릭 시 실제 player detail view 로 이동 가능
 - 2025 실제 시즌 적재 완료
   - `python -m app.ingest.cli ingest-season --season 2025 --series-group preseason --series-group regular --series-group postseason --use-live --start-date 2025-03-01 --end-date 2025-10-31` 실행
   - 적재 결과: preseason 42경기, regular 720경기, postseason 16경기, 총 778경기 성공
@@ -94,7 +99,9 @@
 - 현재 프론트 standings/player records 화면은 실제 백엔드 season snapshot API를 기준으로 동작한다.
 - 시즌 센터 백엔드는 현재 DB-backed snapshot 응답에서 팀 `stolen_bases`, 투수 `wins`, 타자 `stolen_bases` 를 실제 집계로 반환한다.
 - 시즌 센터 백엔드는 현재 DB-backed snapshot/records 응답에서 `Games Back`, `WHIP`, `stolen_bases`, 투수 `wins` 를 실제 적재 데이터 기준으로 계산한다.
+- 현재 player detail 페이지는 문서상의 장기 목표인 커리어 전체 타임라인 대신, 2025 실제 시즌 기준 요약 + 게임 로그 중심으로 먼저 제공한다.
 - 2025 실제 시즌 적재는 현재 관측된 `ws` game list / scoreboard / boxscore 응답을 사용한 live path 로 수행되며, public HTML inventory 기반 전환은 후속 과제로 남아 있다.
+- public HTML inventory 방향은 계속 `ScoreBoard` 기반 경기 식별/발견을 우선 후보로 두고, `ws/*` 는 detail fallback 으로 한정하는 쪽이 저장소 문서와 가장 잘 맞는다.
 - PostgreSQL 초기 스키마는 경기/선수/팀/시즌 식별자와 시즌 기록, 경기 기록, source capture, sync log 중심으로 먼저 정리했다.
 - ingestion 경계는 MVP 단계에서 단일 앱을 우선하고, source collection 과 batch orchestration 책임을 문서상 분리했다.
 - `robots.txt` 는 `/ws/` 경로를 disallow 하고, `ScoreBoard` 의 문자중계 버튼은 로그인 경고로 연결된다.
@@ -110,9 +117,9 @@
 
 ## Recommended Next Tasks
 
-1. 2025 시즌 적재 inventory 를 public `Schedule/ScoreBoard` HTML 기준으로 전환할지 검토한다.
+1. 2025 시즌 적재 inventory 를 public `Schedule/ScoreBoard` HTML 기준으로 전환하는 단계별 실행안을 문서화한다.
 2. 로컬 conda 환경에서 ingest CLI와 FastAPI 실행 절차를 문서화한다.
-3. season snapshot/player-records API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
+3. season snapshot/player-records/player-detail API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
 4. 선수 식별자(`player_id`) 안정 연결 경로를 확보해 `player_key` 임시 정책을 고도화한다.
 
 ## Working Rule For Future Sessions
