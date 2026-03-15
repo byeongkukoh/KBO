@@ -297,6 +297,20 @@ test("renders db-backed standings and player records", async ({ page }) => {
         page_size: 25,
         total_count: 2,
         total_pages: 1,
+        seasons: [
+          {
+            season: 2025,
+            team_code: "SS",
+            games: 29,
+            qualified: true,
+            innings_outs: 539,
+            innings_display: "179.2",
+            wins: 14,
+            strikeouts: 164,
+            era: 2.81,
+            whip: 1.06,
+          },
+        ],
         logs: [
           {
             game_id: "20251001SSLG0",
@@ -318,18 +332,18 @@ test("renders db-backed standings and player records", async ({ page }) => {
     });
   });
 
-  await page.goto("/");
-
-  await expect(page.getByText(/시즌 팀 순위/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "LG 트윈스" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "선수 기록" })).toBeVisible();
-
-  await page.getByRole("button", { name: "선수 기록" }).click();
+  await page.goto("/seasons/2025/players?series=regular&mode=top5&group=hitters&page=1&pageSize=25");
 
   await expect(page.getByText("타자 Top 5")).toBeVisible();
+  await expect(page.getByRole("button", { name: "선수 기록" })).toBeVisible();
   await expect(page.getByText("도루")).toBeVisible();
   await expect(page.getByText("평균자책점")).toBeVisible();
 
+  await page.getByRole("button", { name: "홈" }).click();
+  await expect(page.getByText(/시즌 팀 순위/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "LG 트윈스" })).toBeVisible();
+
+  await page.getByRole("button", { name: "선수 기록" }).click();
   await page.getByRole("button", { name: "전체 보기" }).click();
 
   await expect(page.getByText("전체 선수 기록")).toBeVisible();

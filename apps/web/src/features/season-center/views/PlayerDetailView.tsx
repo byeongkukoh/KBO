@@ -34,6 +34,70 @@ export function PlayerDetailView({ season, seasons, seriesCode, onSeasonChange, 
 
       <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
         <div className="border-b border-white/10 px-5 py-5">
+          <h3 className="text-xl font-semibold text-white">커리어 시즌 요약</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-slate-200">
+            <thead className="bg-white/6 text-xs uppercase tracking-[0.18em] text-slate-400">
+              <tr>
+                <th className="px-4 py-3 text-left">시즌</th>
+                <th className="px-4 py-3 text-left">팀</th>
+                <th className="px-4 py-3 text-right">경기</th>
+                <th className="px-4 py-3 text-right">규정</th>
+                {isHitter ? (
+                  <>
+                    <th className="px-4 py-3 text-right">PA</th>
+                    <th className="px-4 py-3 text-right">안타</th>
+                    <th className="px-4 py-3 text-right">홈런</th>
+                    <th className="px-4 py-3 text-right">도루</th>
+                    <th className="px-4 py-3 text-right">타율</th>
+                    <th className="px-4 py-3 text-right">OPS</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="px-4 py-3 text-right">IP</th>
+                    <th className="px-4 py-3 text-right">승리</th>
+                    <th className="px-4 py-3 text-right">탈삼진</th>
+                    <th className="px-4 py-3 text-right">ERA</th>
+                    <th className="px-4 py-3 text-right">WHIP</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {detail.seasons.map((seasonRow) => (
+                <tr key={`${seasonRow.season}-${seasonRow.team_code}`} className="border-t border-white/8">
+                  <td className="px-4 py-4">{seasonRow.season}</td>
+                  <td className="px-4 py-4">{seasonRow.team_code}</td>
+                  <td className="px-4 py-4 text-right">{seasonRow.games}</td>
+                  <td className="px-4 py-4 text-right">{seasonRow.qualified ? "Y" : "N"}</td>
+                  {isHitter ? (
+                    <>
+                      <td className="px-4 py-4 text-right">{seasonRow.plate_appearances}</td>
+                      <td className="px-4 py-4 text-right">{seasonRow.hits}</td>
+                      <td className="px-4 py-4 text-right">{seasonRow.home_runs}</td>
+                      <td className="px-4 py-4 text-right">{seasonRow.stolen_bases}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.batting_avg === "number" ? seasonRow.batting_avg.toFixed(3) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.ops === "number" ? seasonRow.ops.toFixed(3) : "-"}</td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-4 text-right">{seasonRow.innings_display ?? "-"}</td>
+                      <td className="px-4 py-4 text-right">{seasonRow.wins ?? "-"}</td>
+                      <td className="px-4 py-4 text-right">{seasonRow.strikeouts ?? "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.era === "number" ? seasonRow.era.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-4 text-right">{typeof seasonRow.whip === "number" ? seasonRow.whip.toFixed(2) : "-"}</td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
+        <div className="border-b border-white/10 px-5 py-5">
           <h3 className="text-xl font-semibold text-white">시즌 경기별 기록</h3>
         </div>
         <div className="overflow-x-auto">

@@ -148,5 +148,6 @@ export type PlayerDetail = {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  seasons: Array<Record<string, string | number | boolean | null>>;
   logs: PlayerDetailLog[];
 };

@@ -160,6 +160,7 @@ type ApiPlayerDetail = {
   page_size: number;
   total_count: number;
   total_pages: number;
+  seasons: Array<Record<string, string | number | boolean | null>>;
   logs: ApiPlayerDetailLog[];
 };
 
@@ -348,6 +349,7 @@ export async function getPlayerSeasonDetail(options: {
     pageSize: response.page_size,
     totalCount: response.total_count,
     totalPages: response.total_pages,
+    seasons: response.seasons as Array<Record<string, string | number | boolean | null>>,
     logs: response.logs.map(adaptPlayerDetailLog),
   };
 }
