@@ -14,7 +14,7 @@
 - `compose.yml` 에 PostgreSQL 개발 컨테이너 구성을 추가했고, API/ingest 는 호스트에서 실행하는 방식을 유지한다.
 - `apps/api` 에 단일 경기 vertical slice 백엔드 구현이 추가되어 fixture 또는 live 소스로 1경기 ingest, PostgreSQL 저장, 파생 지표 계산, 조회 API 제공이 가능하다.
 - `apps/api` 에 시즌 센터용 read API가 추가되어 기존 game-level 테이블에서 시즌별 팀 순위/팀 통계/선수 리더보드를 DB 집계로 조회할 수 있다.
-- 2024 전체 시즌, 2025 전체 시즌, 2026 현재까지 완료된 경기 데이터가 PostgreSQL 에 적재되어 시즌별/시리즈별 조회가 가능하다.
+- 2024 전체 시즌(46/720/16), 2025 전체 시즌(42/720/16), 2026 오늘 기준 preseason 25경기 데이터가 PostgreSQL 에 적재되어 시즌별/시리즈별 조회가 가능하다.
 - `apps/web` 시즌 센터 프론트엔드가 실제 `GET /api/seasons` / `GET /api/seasons/{season}/snapshot` API를 사용하도록 전환되어 팀 순위, 팀 통계, 선수 Top 5, 전체 선수 기록 화면을 DB snapshot 기준으로 조회한다.
 - 시즌 센터 프론트/백엔드 구조를 기능 단위 모듈로 분리해 유지보수성을 개선했다.
 - 시즌 센터는 이제 URL query state, 전체 기록 페이지네이션, 선수 상세 페이지를 포함한 실제 탐색 흐름을 지원한다.
@@ -25,7 +25,6 @@
 - 팀 상세 페이지와 경기 목록/상세 화면이 season center 흐름에 연결되었다.
 - league baseline/상수 계층을 확장해 Tier 2 지표 일부(`wOBA`, `wRC`, `wRC+`, `FIP`)를 실제 API 응답에 포함하기 시작했다.
 - season/team/game/player 응답에 freshness 메타데이터가 추가되어 마지막 적재 시점과 컨텍스트 갱신 시점을 함께 노출한다.
-- 2024 전체 시즌과 2026 현재까지 완료된 경기 데이터가 PostgreSQL 에 적재되어 multi-season 탐색이 가능하다.
 
 ## Completed Planning Work
 
@@ -78,7 +77,7 @@
   - 프론트 shell 이 freshness 정보를 보여주도록 갱신
 - 멀티 시즌 적재 및 정시 동기화 구현 완료
   - 2024 시즌: preseason 46, regular 720, postseason 16 적재 완료
-  - 2026 시즌: preseason 20 적재 완료
+  - 2026 시즌: preseason 25 적재 완료
   - `/api/seasons` 응답은 현재 `[2026, 2025, 2024]`
   - `python -m app.ingest.cli run-scheduled-season-sync ...` 로 지정 시각 정시 동기화 가능
 - 리그 baseline/상수 1차 구현 완료
@@ -100,8 +99,12 @@
   - 시즌 적재 중 중복 선수 행을 병합하도록 ingest 로직을 보강해 bulk backfill 실패를 제거
 - 2024 / 2026 실제 시즌 적재 완료
   - 2024: preseason 46경기, regular 720경기, postseason 16경기, 총 782경기 적재 성공
-  - 2026: 현재까지 완료된 preseason 20경기 적재 성공
+  - 2026: 현재까지 완료된 preseason 25경기 적재 성공
   - `/api/seasons` 응답은 현재 `[2026, 2025, 2024]`
+- 2026-03-17 기준 DB 재적재 완료
+  - PostgreSQL 데이터를 다시 올리기 위해 `conda run -n kbo-record-api` 기준으로 의존성 설치, Alembic upgrade, 2024/2025/2026 live season ingest 를 재실행했다.
+  - 검증 결과 `games` 분포는 2024 `46/720/16`, 2025 `42/720/16`, 2026 `25/0/0` 이고, query service 기준 `list_available_seasons()` 는 `[2026, 2025, 2024]` 를 반환한다.
+  - league context 는 2024/2025 preseason·regular·postseason, 2026 preseason 기준으로 다시 refresh 했다.
 - 정시 시즌 동기화 명령 추가
   - `python -m app.ingest.cli run-scheduled-season-sync --season 2026 --series-group preseason --series-group regular --time 09:00 --time 21:00 --timezone Asia/Seoul --lookback-days 3 --use-live`
   - 지정 시각마다 최근 `lookback_days` 범위를 다시 훑어 완료된 경기를 적재하고 league context 를 갱신한다.

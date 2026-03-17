@@ -31,7 +31,7 @@
 - PostgreSQL `games` 테이블에는 다음 시즌 분포가 있어야 한다.
   - `2024`: preseason 46, regular 720, postseason 16
   - `2025`: preseason 42, regular 720, postseason 16
-  - `2026`: preseason 20
+  - `2026`: preseason 25
 - season center 프론트는 seeded mock 이 아니라 실제 API를 기준으로 동작한다.
 
 ## Handoff Rule
