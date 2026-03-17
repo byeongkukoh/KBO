@@ -21,6 +21,7 @@
 - 시즌 센터 URL 구조는 `/seasons/:season`, `/seasons/:season/players`, `/seasons/:season/players/:playerKey` 기준으로 동작한다.
 - 데이터가 없는 시즌/시리즈를 선택해도 시즌 센터 컨트롤을 유지한 채 empty state 로 복구되도록 프론트 UX를 보강했다.
 - 시즌 센터와 선수 상세에 sabermetrics v1 지표가 추가되어 저위험 파생 지표를 실제 2025 시즌 데이터 기준으로 확인할 수 있다.
+- `docs/product/sabermetrics-ui-next-phase.md` 에 현재 UI의 사베르메트릭스 적합성 평가와 다음 단계 작업 분리를 정리했다.
 - 선수 상세에 월별 split 그래프와 선수 비교 차트 UI를 추가해 일반 사용자도 월별 추이와 선수 간 차이를 시각적으로 볼 수 있다.
 - 팀 상세 페이지와 경기 목록/상세 화면이 season center 흐름에 연결되었다.
 - league baseline/상수 계층을 확장해 Tier 2 지표 일부(`wOBA`, `wRC`, `wRC+`, `FIP`)를 실제 API 응답에 포함하기 시작했다.
@@ -185,6 +186,7 @@
 4. park factor / 리그별 weight 정책을 정해 `OPS+`, `ERA+`, `wRC+` 를 KBO 전용 기준으로 고도화한다.
 5. season snapshot/player-records/player-detail/team-detail/game-list API에 캐싱 또는 경량 materialization 이 필요한지 측정한다.
 6. 팀 상세와 시즌 센터에서 in-memory season aggregation 을 더 SQL/summary 친화적으로 줄일지 검토한다.
+7. `docs/product/sabermetrics-ui-next-phase.md` 기준으로 glossary, baseline, comparison, split 확장 작업을 단계별로 구현한다.
 
 ## Working Rule For Future Sessions
 
